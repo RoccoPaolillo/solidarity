@@ -601,14 +601,16 @@ df_finlocast %>%
  
 ## topic modelling ####
  load("sample/df_we.Rdata")
- load("sample/DE_1/cvd/DE_25/stm_de25cv.Rdata")
- load("sample/DE_1/cvd/dfm_soldecv.Rdata")
- stm_m <- stm_de25
- stm_df <- quanteda::convert(dfm_soldecv,to = "stm")  
+ load("sample/DE_1/cvd/DE_1_20/stm_de20cv.Rdata")
+ load("sample/IT_1/cvd/IT25/stm_it25cv.Rdata")
+ load("sample/IT_1/cvd/dfm_solitcv.Rdata")
+ stm_m <- stm_it25
+ stm_df <- quanteda::convert(dfm_solitcv,to = "stm")  
  numm <- 25
  
- dfb <- df_we %>% filter(country == "Germany")
+ dfb <- df_we %>% filter(country == "Italy")
  
+# report topic modelling #### 
  sg <- labelTopics(stm_m,1:numm,15)
  sg_prob <- tibble(topic = 1:numm,sg$prob) # marginal probability
  sg_frex <- tibble(topic = 1:numm,sg$frex) # marginal frex
@@ -669,7 +671,10 @@ gamma_terms <- td_gamma %>%
  left_join(top_terms, by = "topic") %>%
   mutate(topic = paste0("Topic ", topic),
          topic = reorder(topic, gamma)) 
- 
+
+gamma_terms$gamma <- paste0("_",gamma_terms$gamma)
+write.csv(gamma_terms,file="sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",row.names = F)
+
 gamma_terms %>%
   # top_n(20, gamma) %>%
   ggplot(aes(topic, gamma, label = terms, fill = topic)) +
@@ -689,33 +694,130 @@ gamma_terms %>%
 ggsave(file="sample/DE_1/cvd/DE_25/topic_proportionDE25.jpg",width = 14, height = 12)
  
 
-# combined plots 
+# combined plots ####
+de_gamma_terms <- read.csv("sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",sep=";")
+it_gamma_terms <- read.csv("sample/IT_1/cvd/IT25/it_gamma_terms25.csv",sep=";")
+load("sample/IT_1/cvd/IT25/it_gamma_terms25.Rdata")
+it_gamma_terms$gamma <- paste0("_",it_gamma_terms$gamma)
+write.csv(it_gamma_terms,file="sample/IT_1/cvd/IT25/it_gamma_terms25.csv",row.names = F)
 
-gamma_terms_DE25$macro <- "xxx"
-gamma_terms_DE25$label <- "xxx"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 14",]$label <- "schooling"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 22",]$label <- "social_cohesion"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 5",]$label <- "europe"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 16",]$label <- "vaccination"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 18",]$label <- "children"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 8",]$label <- "culture_events"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 17",]$label <- "intensive_care"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 15",]$label <- "stay_home"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 9",]$label <- "leibniz"
-gamma_terms_DE25[gamma_terms_DE25$topic == "Topic 20",]$label <- "economy"
+de_gamma_terms <- read.csv("sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",sep=";")
+de_gamma_terms$gamma <- gsub("_","",de_gamma_terms$gamma)
+de_gamma_terms$gamma <- as.numeric(de_gamma_terms$gamma)
+
+it_gamma_terms <- read.csv("sample/IT_1/cvd/IT25/it_gamma_terms25.csv",sep=";")
+it_gamma_terms$gamma <- gsub("_","",it_gamma_terms$gamma)
+it_gamma_terms$gamma <- as.numeric(it_gamma_terms$gamma)
+
+de_gamma_terms$country = "Germany"
+it_gamma_terms$country = "Italy"
+
+
+df <- rbind(it_gamma_terms,de_gamma_terms)
+
+de <- de_gamma_terms %>%
+  ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
+  geom_col() +
+  scale_y_continuous(expand = c(0.01, 0)) +
+  scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
+                               "donations" = "orange","governance" = "lightblue","region" = "pink")) +
+  coord_flip() +
+  geom_text(hjust = 0, y = 0.001) +
+  ylab("Germany (topic proportion)") +
+  theme_bw() +
+  theme(axis.title.y = element_blank())
+de
+
+it <- it_gamma_terms %>%
+  ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
+  geom_col() +
+  scale_y_continuous(expand = c(0.01, 0)) +
+  scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
+                               "donations" = "orange","governance" = "lightblue","region" = "pink")) +
+  coord_flip() +
+  geom_text(hjust = 0, y = 0.001) +
+  ylab("Italy (topic proportion)") +
+  theme_bw() +
+  theme(axis.title.y = element_blank())
+ggsave(it,file="figures/test_it.jpg",width = 8,height = 10)
+
+grid.arrange(de,it,ncol = 2)
+
+df %>% 
+  ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
+                               "donations" = "orange","governance" = "lightblue","region" = "pink"),
+                    name = "Solidarity type") +
+  scale_y_continuous(expand = c(0.01,0),
+                     labels = scales::percent_format() ) +
+  ylab("Topic Proportion") +
+  geom_text(hjust = 0, y = 0.001, size = 7) +
+  theme_bw() +
+  facet_wrap(~ country, scales = "free" ) +
+  guides(fill = guide_legend(nrow = 1)) +
+  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_text(size = 19),
+        legend.text = element_text(size=17), legend.title =  element_text(size=17),
+        strip.text.x = element_text(size = 20))
+ggsave(file="figures/topic_proportion.jpg",width = 21,height = 13)
+
+
+
+
+ # time topic modelling ####
  
- 
- 
- # Combine 2 plots
- 
- tidystm <- tidy(stm_m)
+# tidystm <- tidy(stm_m)
  # tidystm <- rename(tidystm, actor = y.level)
  
  prep <- estimateEffect(1:numm ~ s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
  
- effects_int <- get_effects(estimates = prep,
+ it_effects_int <- get_effects(estimates = prep,
                             variable = 'datenum',
                             type = 'continuous'  )  
+ 
+ 
+it_tm <- it_effects_int %>%  filter(topic == c(20,23,17,2)) %>%
+   ggplot(aes(x = value, y = proportion, color = as.factor(topic))) + geom_line(size = 1.5) + 
+   scale_x_continuous(breaks = c(18289,18414,18627,18809,18992),
+     labels = c("18289" = "GEN 20","18414" = "JUN 20","18627" = "JAN 21","18809" = "JUN 21",
+         "18992" = "DEC 21")) +
+    scale_color_manual(values = c("20" = "orange","23" = "purple", "17" = "lightblue","2" = "limegreen"),
+                       labels = c("20" = "Groceries Donations","23" = "Lockdown", "17" = "Digital Services","2" = "Hospital Donations"),
+                       name = "Topics" ) +
+  scale_y_continuous(labels = scales::percent_format() ) +
+   ggtitle("Italy") + 
+ #  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+   ylab("Expected Proportion") +
+   xlab("Time") +
+   theme_bw() +
+  theme(axis.title.x = element_blank(), legend.position = "bottom",
+        legend.text = element_text(size=12), legend.title =  element_text(size=12))
+
+de_tm <- de_effects_int %>%  filter(topic == c(6,16,15,11)) %>%
+  ggplot(aes(x = value, y = proportion, color = as.factor(topic))) + geom_line(size = 1.5) + 
+  scale_x_continuous(breaks = c(18304,18414,18627,18809,18992),
+                     labels = c("18304" = "FEB 20","18414" = "JUN 20","18627" = "JAN 21","18809" = "JUN 21",
+                                "18992" = "DEC 21")) +
+  scale_y_continuous(labels = scales::percent_format() ) +
+  scale_color_manual(values = c("6" = "limegreen","16" = "purple", "15" = "orange","11" = "lightblue"),
+                     labels = c("6" = "Refugees","16" = "Vaccination", "15" = "Lockdown","11" = "Freedom"),
+                     name = "Topics" ) +
+  ggtitle("Germany") + 
+  #  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  ylab("Expected Proportion") +
+  xlab("Time") +
+  theme_bw() +
+  theme(axis.title.x = element_blank(), legend.position = "bottom",
+        legend.text = element_text(size=12), legend.title =  element_text(size=12))
+ 
+
+prev <- grid.arrange(it_tm,de_tm)
+ggsave(prev,file="figures/topic_prevalence.jpg",width = 8,height = 7)
+
+
+
+
  
  for (i in 1:numm) {
    
