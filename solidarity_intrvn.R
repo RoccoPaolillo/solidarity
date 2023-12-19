@@ -28,9 +28,10 @@ library(ggthemes)
 library("stminsights")
 library("gridExtra")
 library("ggrepel")  
+library(dplyr)
 
 
-"%nin%" <- Negate("%in%")
+#"%nin%" <- Negate("%in%")
 
 setwd("C:/Users/rocpa/OneDrive/Desktop/CNT/solidarity_server/")
 
@@ -321,7 +322,7 @@ setwd("C:/Users/rocpa/OneDrive/Desktop/CNT/solidarity_server/")
 #
 #### for n-gram detection
 #
-# bigrams_tx  <- df_finlocast[,-3] %>% unnest_tokens(bigram, text, token = "ngrams", n = 2)
+# bigrams_tx  <- df_we[,-3] %>% unnest_tokens(bigram, text, token = "ngrams", n = 2)
 # bigrams_tx  %>% dplyr::count(bigram, sort = TRUE)
 # bigrams_separate  <- bigrams_tx  %>% separate(bigram,c("word1","word2"),sep=" ")
 # bigrams_filtered  <- bigrams_separate  %>%
@@ -332,7 +333,7 @@ setwd("C:/Users/rocpa/OneDrive/Desktop/CNT/solidarity_server/")
 # # bigrams_united  <- bigrams_united$bigram
 # bigrams_united <- unique(bigrams_united)
 # 
-# write.csv(bigrams_united,"sample/bigrams_hifen.csv",row.names= F)
+# write.csv(bigrams_united,"sample/bigrams_dfwe.csv",row.names= F)
 # 
 # trigrams_tx <- df_finlocast[,-3] %>%  unnest_tokens(trigram, text, token = "ngrams", n = 3)
 # trigrams_tx %>% dplyr::count(trigram, sort = TRUE)
@@ -362,6 +363,100 @@ setwd("C:/Users/rocpa/OneDrive/Desktop/CNT/solidarity_server/")
 # write.csv(quadrigrams_united,"sample/quadrigrams_and_hifen.csv",row.names= F)
 
 
+# Empirical datasets ####
+
+# Eurostat inflation
+
+umpl <- read.csv("sample/unemployment1923.csv",sep=";")
+names(umpl[,2:52]) <- as.numeric(names(umpl[,2:52]))
+names(umpl) <- gsub("X","",names(umpl))
+names(umpl) <- gsub("\\b.\\b" ,"-",names(umpl))
+
+umpl <- gather(umpl, date, unemployment, c(2:52), factor_key=TRUE)
+umpl$unemployment <- as.numeric(umpl$unemployment)
+umpl[is.na(umpl)] <- 0
+
+infl <- read.csv("sample/inflation1923.csv",sep=";")
+names(infl[,2:48]) <- as.numeric(names(infl[,2:48]))
+names(infl) <- gsub("X","",names(infl))
+names(infl) <- gsub("\\b.\\b" ,"-",names(infl))
+
+infl <- gather(infl, date, inflation, c(2:48), factor_key=TRUE)
+infl$inflation <- gsub("\\b,\\b",".",infl$inflation)
+infl$inflation <- as.numeric(infl$inflation)
+infl[is.na(infl)] <- 0
+
+infl$date <- paste0(infl$date,"-01")
+infl$date <- as_date(infl$date)
+infl$datenum <- as.integer(infl$date)
+
+debt <- read.csv("sample/gross_debt1923.csv",sep=";")
+names(debt[,2:24]) <- as.numeric(names(debt[,2:24]))
+names(debt) <- gsub("X","",names(debt))
+names(debt) <- gsub("\\b.\\b" ,"-",names(debt))
+
+debt <- gather(debt, date, debtgross, c(2:24), factor_key=TRUE)
+debt$debtgross <- gsub("\\b,\\b",".",debt$debtgross)
+debt$debtgross <- as.numeric(debt$debtgross)
+debt[is.na(debt)] <- 0
+
+debt$date <- paste0(debt$date,"-01-01")
+debt$date <- as_date(debt$date)
+debt$datenum <- as.integer(debt$date)
+
+debt[debt$country == "Germany (until 1990 former territory of the FRG)",]$country <- "Germany"
+
+debt <- gather(debt,variable,value,3, factor_key=TRUE)
+infl <- gather(infl,variable,value,3, factor_key=TRUE)
+umpl <- gather(umpl,variable,value,3, factor_key=TRUE)
+
+df_eurostat <- rbind(debt,infl,umpl)
+
+
+# df_eurostat[df$GEO == "Germany" & df_eurostat$date == "2021-03",]$inflation <- 2.0
+# df_eurostat[df$GEO == "Germany" & df_eurostat$date == "2021-11",]$inflation <- 6.0
+# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2020-09",]$inflation <- -1.0
+# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-02",]$inflation <- 1.0
+# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-04",]$inflation <- 1.0
+# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-07",]$inflation <- 1.0
+df_eurostat <- df_eurostat %>% rename(country = GEO)
+df_eurostat$date <- paste0(df_eurostat$date,"-01")
+df_eurostat$date <- as_date(df_eurostat$date)
+df_eurostat$datenum <- as.integer(df_eurostat$date)
+
+
+save(df_eurostat,file="sample/df_eurostat.Rdata")
+rm(df_eurostat)
+load("sample/df_eurostat.Rdata")
+
+who <- read.csv("WHO.csv",sep=";")
+who <- who %>% rename(
+  country = Country,
+  date = Date_reported
+)
+
+who <- who %>% filter(country %in% c("Italy","Germany"))
+who$date <- gsub("/","-",who$date)
+who$datenum <- as_date(who$date,format = "%d-%m-%y")
+who$datenum <- as.integer(who$datenum)
+who <- who %>% filter(datenum <= 18992)
+save(who,file="sample/whodf.Rdata")
+
+df <- who %>% filter(Country == "Italy")
+df$normcase <- norm_minmax(df$New_cases)
+dfde <- who %>% filter(Country == "Germany")
+dfde$normcase <- norm_minmax(dfde$New_cases)
+
+whodf <- rbind(df,dfde)
+
+
+save(whodf,file="sample/whodf.Rdata")
+
+
+
+
+
+
 # upload data ####
 
 load("sample/df_finlocast.Rdata")
@@ -371,19 +466,16 @@ rem <- unique(rem)
 rem <- gsub("#","",rem)
 cvd <- read.xls("sample/compound.xls",sheet = "cvd", encoding = "latin1")[,1] 
 cvd <- gsub("#","",cvd)
-rem_char <- c("http*","@*","€","+","|","s","faq","=","_","__","~")
-
-# for covid-only tweets ####
-load("sample/tweet_cvd.Rdata")
-tweet_cvd <- gsub("_","",tweet_cvd)
-df_finlocast <- df_finlocast %>% filter(tweet_id %in% tweet_cvd)
-# !! in word_embedding script this subsample is saved as df_we for shortness
+rem_char <- c("http*","@*","€","+","|","s","faq","=","_","__","~","___")
+# rem_de <- read.xls("sample/compound.xls",sheet = "rem_de", encoding = "latin1")[,1]
+# rem_de <- unique(rem_de)
+# rem_de <- gsub("#","",rem_de)
 
 # clean duplicates
 df_finlocast$selected <- 1
 df_finlocast[11919,]$selected <- 0
 df_finlocast <- df_finlocast[!duplicated(df_finlocast$original_language),]
-df_finlocast <- df_finlocast %>% filter(!user_username %in% c("AntonioPinna11","AssGSintini","ThierryCuisine"))
+df_finlocast <- df_finlocast %>% filter(!user_username %in% c("AntonioPinna11","AssGSintini","ThierryCuisine","FranceCarlucci_","StadtViersen")) # "StadtViersen"
 df_finlocast <- df_finlocast %>% filter(selected == 1)
 
 # delete tweets
@@ -411,6 +503,7 @@ df_finlocast[df_finlocast$user_username == "comunerimini",]$text <- str_replace_
 df_finlocast[df_finlocast$country == "Italy",]$text <- str_replace_all(df_finlocast[df_finlocast$country == "Italy",]$text, "\\bmes\\b","esm" )
 df_finlocast[df_finlocast$user_username == "SolidarischeN",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "SolidarischeN",]$text, "\\btübingen\\b","" )
 df_finlocast[df_finlocast$user_username == "ilGiunco",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "ilGiunco",]$text, "\\bgrosseto\\b","" )
+df_finlocast[df_finlocast$user_username == "ilGiunco",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "ilGiunco",]$text, "\\bthejun\\b","" )
 df_finlocast[df_finlocast$user_username %in% c("Toscanaoggi","toscanatoday"),]$text <- str_replace_all(df_finlocast[df_finlocast$user_username %in% c("Toscanaoggi","toscanatoday"),]$text, "\\btoscana\\b","" )
 df_finlocast[df_finlocast$user_username == "Brunopolik",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "Brunopolik",]$text, "\\bdada\\b","" )
 df_finlocast[df_finlocast$user_username == "SolidarietaBG",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "SolidarietaBG",]$text, "\\bcividino\\b","" )
@@ -423,9 +516,8 @@ df_finlocast[df_finlocast$user_username == "LaMilanesiana",]$text <- str_replace
 df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text, "\\bsocialresponsibility\\b","" )
 df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text, "\\bterritory\\b","" )
 df_finlocast[df_finlocast$country == "Italy",]$text <- str_replace_all(df_finlocast[df_finlocast$country == "Italy",]$text, "\\broma\\b","rome" )
-# df_finlocast[df_finlocast$tweet_id == "1190216177974415360",]$text <- " for a solidary district! 14 o'clock vinetaplatz vonovia expropriate usury of rents end with high rents bad apartments! end with rip-off by housing corporations displacement!"
-
-
+df_finlocast[df_finlocast$tweet_id == "1190216177974415360",]$text <- "for a solidary district! 14 o'clock vinetaplatz vonovia expropriate usury of rents end with high rents bad_apartments! end with rip-off by housing_corporations displacement!"
+df_finlocast[df_finlocast$tweet_id == "1337268447424737281",]$text <- "mask on stay_at_home powerdenladenend immediately, also to prevent such individual fates finally solidarity besides 10_20 % of the officially recovered are not healthy! recovered but not healthy continue to suffer from longcovid, brainfog, mecfs, etc."
 
 # df_finlocast[df_finlocast$user_username == "kubakunde",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "cubasalvavidas",]$text, "\\bcuba\\b","" )
 # df_finlocast[df_finlocast$user_username == "fgbrdkuba",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "cubasalvavidas",]$text, "\\bbrd_cuba\\b","" )
@@ -436,8 +528,13 @@ cmpd <- paste0("\\b",cmpd,"\\b")
 cmpdsubstitute <- read.xls("sample/compound.xls",sheet = "cmpd", encoding = "latin1")[,2]
 names(cmpdsubstitute) <- cmpd
 df_finlocast$text <- str_replace_all(df_finlocast$text,cmpdsubstitute)
-df_finlocast$text <- gsub("#","",df_finlocast$text)
+# df_finlocast$text <- gsub("#","",df_finlocast$text) ###  delete hashtag
 
+# for covid-only tweets ####
+load("sample/tweet_cvd.Rdata")
+tweet_cvd <- gsub("_","",tweet_cvd)
+df_finlocast <- df_finlocast %>% filter(tweet_id %in% tweet_cvd)
+# !! in word_embedding script this subsample is saved as df_we for shortness
 
 
 # tokenization
@@ -454,7 +551,7 @@ df_finlocast <- df_finlocast %>% filter(!word %in% stop_words$word,
 df_finlocast <- replace(df_finlocast, df_finlocast=='', NA)
 df_finlocast <- df_finlocast %>% drop_na(word)
 
-
+df_finlocast$word <- gsub("#","",df_finlocast$word)
 #### Top frequencies https://www.tidytextmining.com/twitter.html ####
 
 
@@ -466,15 +563,44 @@ df_finlocast <- df_finlocast %>% drop_na(word)
 # 
 # a <- frequency %>% 
 #   filter(user_username >= 2)
-  
 
-ggplot(frequency[frequency$word == "#solidarity",], aes(x = monthyear,y = n, color = country)) +
+dfs <- frequency %>% filter(word == "#solidarity")
+dfs <- merge(dfs,df,by = c("country","monthyear"))
+dfs$label <- ""
+dfs[dfs$country == "Germany" & dfs$monthyear == "03-2020",]$label <- "#corona"
+dfs[dfs$country == "Germany" & dfs$monthyear == "12-2020",]$label <- "#corona"
+dfs[dfs$country == "Germany" & dfs$monthyear == "01-2019",]$label <- "#christchurch"
+dfs[dfs$country == "Germany" & dfs$monthyear == "05-2019",]$label <- "#europawahl2019"
+dfs[dfs$country == "Germany" & dfs$monthyear == "10-2019",]$label <- "#rojava"
+dfs[dfs$country == "Germany" & dfs$monthyear == "04-2020",]$label <- "#corona"
+dfs[dfs$country == "Germany" & dfs$monthyear == "04-2020",]$label <- "#solidaritynotalone"
+
+dfs[dfs$country == "Germany" & dfs$monthyear == "06-2020",]$label <- "#sogehtsolidarisch"
+dfs[dfs$country == "Germany" & dfs$monthyear == "05-2021",]$label <- "#1mai"
+dfs[dfs$country == "Germany" & dfs$monthyear == "07-2021",]$label <- "#flood disaster"
+dfs[dfs$country == "Germany" & dfs$monthyear == "09-2021",]$label <- "#btw21"
+dfs[dfs$country == "Germany" & dfs$monthyear == "12-2021",]$label <- "#corona"
+dfs[dfs$country == "Italy" & dfs$monthyear == "04-2020",]$label <- "#coronavirus"#christmas
+dfs[dfs$country == "Italy" & dfs$monthyear == "05-2020",]$label <- "#coronavirus"#christmas
+dfs[dfs$country == "Italy" & dfs$monthyear == "12-2020",]$label <- "#christmas"
+dfs[dfs$country == "Italy" & dfs$monthyear == "02-2019",]$label <- "#iostoconipastorisardi"
+dfs[dfs$country == "Italy" & dfs$monthyear == "04-2019",]$label <- "#easter"
+dfs[dfs$country == "Italy" & dfs$monthyear == "12-2019",]$label <- "#christmas" #fondazioneantiusura
+dfs[dfs$country == "Italy" & dfs$monthyear == "07-2020",]$label <- "#fondazioneantiusura"
+dfs[dfs$country == "Italy" & dfs$monthyear == "05-2021",]$label <- "#fastconfsal"
+dfs[dfs$country == "Italy" & dfs$monthyear == "09-2021",]$label <- "#mimmolucano"
+dfs[dfs$country == "Italy" & dfs$monthyear == "12-2021",]$label <- "#christmas2021"
+
+
+# ggplot(frequency[frequency$word == "#solidarity",], aes(x = monthyear,y = n, color = country)) +
+  ggplot(dfs, aes(x = monthyear,y = n.x, color = country)) +
   geom_point(aes(color = country)) + 
   geom_line(aes(group = as.factor(country))) +
+  geom_text_repel(aes(label = label)) +
   xlab("Time (month-year)") +
   ylab("Frequency") +
   labs(color = "Country") +
-  ggtitle("Term #solidarity in Twitter") +
+  ggtitle("Term #solidarity in Twitter and most associated words") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = -75, hjust = 0), legend.position = "bottom")
 ggsave(file="figures/frequency.jpg",width = 12,height = 6)
@@ -535,6 +661,14 @@ ggplot(aes(x = monthyear,y = tf_idf)) +
 ggsave("figures/tf_idf.jpg", width = 10,  height = 9)
 
 #
+
+df <- df_tf_idf %>% filter(! word %in% c("solidarity","#solidarity","#solidarityisfuture",
+                                         "#pressdelivery","#prnnews","#fondazionemoscati")) %>% 
+  group_by(country,monthyear) %>% top_n(1)
+
+df[df$catlev == "Germany_10-2021",]$word <- "#freedy, #freejo"
+df[df$catlev == "Germany_11-2019",]$word <- "#anti imperialism, #h2311"
+#
 # to plot each month
 # df_tf_idf %>%
 # filter(dateyear %in% c(2021)) %>%
@@ -554,9 +688,11 @@ ggsave("figures/tf_idf.jpg", width = 10,  height = 9)
 # df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text, "\\bsocialresponsibility\\b","" )
 # df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text <- str_replace_all(df_finlocast[df_finlocast$user_username == "OsservaSocialis",]$text, "\\bterritory\\b","" )
 
+
 df_finlocast %>% 
-  filter(! word %in% c(cvd,"alongside")) %>%
-# filter(monthyear == "04-2020") %>%
+  filter(! word %in% c(cvd)) %>%
+  filter(! word %in% rem_char) %>%
+  filter(! word %in% rem) %>%
   count(word, country) %>%
   group_by(word) %>%
   filter(sum(n) >= 20) %>%
@@ -576,20 +712,20 @@ df_finlocast %>%
   ylab("log odds ratio (Germany/Italy)") +
   scale_fill_discrete(name = "", labels = c("Germany", "Italy")) +
   theme_bw() 
- ggsave(file="figures/keyness_cvd.jpg",width = 10, height = 9)
+ ggsave(file="figures/keyness_cvdRN.jpg",width = 10, height = 9)
 
 
 # dfm ####
  
- corpus_df <- corpus(df_finlocast)
- docnames(corpus_df) <- df_finlocast$tweet_id
+ corpus_df <- corpus(df_finlocast[df_finlocast$country == "Italy",])
+ docnames(corpus_df) <-  df_finlocast[df_finlocast$country == "Italy",]$tweet_id
  
- dfm_solbothcv <- tokens(corpus_df,
+ dfm_itsolcv <- tokens(corpus_df,
                      remove_punct = TRUE, remove_numbers = TRUE,remove_url = TRUE) %>% 
    tokens_remove(c(rem_char,
                    rem)) %>%
    dfm()
- save(dfm_solbothcv,file="sample/dfm_solbothcv.Rdata")
+ save(dfm_itsolcv,file="sample/7/7IT/dfm_itsolcv.Rdata")
 
 # load("sample/dfm_sol.Rdata")
 
@@ -600,15 +736,17 @@ df_finlocast %>%
  save(dfm_solit,file="sample/dfm_solit.Rdata")
  
 ## topic modelling ####
- load("sample/df_we.Rdata")
- load("sample/DE_1/cvd/DE_1_20/stm_de20cv.Rdata")
- load("sample/IT_1/cvd/IT25/stm_it25cv.Rdata")
- load("sample/IT_1/cvd/dfm_solitcv.Rdata")
- stm_m <- stm_it25
- stm_df <- quanteda::convert(dfm_solitcv,to = "stm")  
- numm <- 25
+ cvd <- read.xls("sample/compound.xls",sheet = "cvd", encoding = "latin1")[,1] 
+ cvd <- gsub("#","",cvd)
+ rem_char <- c("http*","@*","€","+","|","s","faq","=","_","__","~","___")
+ load("sample/6/df_we6.Rdata")
+ load("sample/6/6DE/stm_de20.Rdata")
+ load("sample/6/6DE/dfm_desolcv.Rdata")
+ stm_m <- stm_de20
+ stm_df <- quanteda::convert(dfm_desolcv,to = "stm")  
+ numm <- 20
  
- dfb <- df_we %>% filter(country == "Italy")
+ dfb <- df_we6 %>% filter(country == "Germany")
  
 # report topic modelling #### 
  sg <- labelTopics(stm_m,1:numm,15)
@@ -642,199 +780,448 @@ df_finlocast %>%
  thoughts <- cbind(topic = 1:numm,thoughts)
  
  report <- cbind(sg_prob,sg_frex,thoughts)
- write.csv(report,file= "sample/DE_1/cvd/DE_25/report25.csv",row.names = F,  fileEncoding = "UTF-8")
+ write.csv(report,file= "sample/6/6DE/reportde30.csv",row.names = F,  fileEncoding = "UTF-8")
 
+ # top proportion topic modelling ####
+ # library(ggraph)
+ # library(igraph)
+ # 
+ #   tidy(stm_m) %>%
+ #     filter(! term %in% c(cvd,"solidarity")) %>%
+ #   group_by(topic) %>%
+ #   slice_max(beta,n = 10) %>% graph_from_data_frame() %>%
+ #   ggraph(layout = "fr") +
+ #   geom_edge_link(aes(edge_alpha = (beta*10))) + 
+ #   # geom_node_point(size = 5) +
+ #   geom_node_text(aes(label = name), repel = TRUE, 
+ #                  point.padding = unit(0.2, "lines")) +
+ #   theme_void()
+ 
+ 
  # topic proportion
  
  top_terms <- tidy(stm_m) %>%
    arrange(beta) %>%
    group_by(topic) %>%
    filter(! term %in% c(cvd,"solidarity")) %>%   # to filter out either it_policies or de_policies
-   top_n(7, beta) %>%
+   top_n(6, beta) %>%
    arrange(-beta)%>%
    select(topic, term) %>%
    summarise(terms = list(unique(term))) %>%
    mutate(terms = map(terms, paste, collapse = ", ")) %>% 
    unnest()
  
-
+ 
 td_gamma <- tidy(stm_m, matrix = "gamma")
 ID_row <- names(stm_df$documents) # the name of documents gets lost, the row number is reported
 td_gamma <- cbind(td_gamma,ID_row) # Here I map each document to its name via row, I checked with content, it works
 td_gamma <- cbind(td_gamma,dfb) # merge the gamma matrix with the dataframe via ID, so the variables to sort documents can be used
 
-
-gamma_terms <- td_gamma %>%
+# gamma it ####
+gamma_terms_it <- td_gamma %>%
   group_by(topic) %>%
   summarise(gamma = mean(gamma)) %>%
   arrange(desc(gamma)) %>%
  left_join(top_terms, by = "topic") %>%
-  mutate(topic = paste0("Topic ", topic),
-         topic = reorder(topic, gamma)) 
+mutate(label = recode(topic,
+                      "1" = "Hospital\ndonations",
+                      "2" = "Charity",
+                      "3" = "Economy", #
+                      "4" = "Covid\noutbreak",
+                      "5" = "Food\ndonations",
+                      "6" = "Digital\nsolidarity",
+                     # "7" = "Third\nsector",
+                      "7" = "Local\ncorporate",
+                      "8" = "Health\nemergency", #*
+                      "9" = "Europe",
+                      "10" = "Local\ndonations",
+                      "11" = "Bergamo",
+                     # "12" = "Global\nwelfare",
+                     "12" = "Cooperation",
+                      "13" = "Community\ndonations",
+                      "14" = "Services\nmunicipalities",
+                      "15" = "Culture",
+                     # "16" = "Companies\ndonations", #
+                     "16" = "Corporate\nresponsibility", #
+                      "17" = "Emergency\ndonations",
+                      "18" = "Fundraising", #
+                      "19" = "Municipalities\ninitiatives",
+                      "20" = "Lockdown", #
+                      "21" = "Vaccination",
+                      "22" = "Governance", #
+                      "23" = "Families",
+                      "24" = "Artisans",
+                      "25" = "Volunteering"
+)) %>%
+  mutate(type = recode(topic,
+                       "1" = "donations",
+                       "2" = "targets",
+                       "3" = "donations",
+                       "4" = "targets",
+                       "5" = "donations",
+                       "6" = "society",
+                       "7" = "donations",
+                       "8" = "public health",
+                       "9" = "transnational",
+                       "10" = "donations",
+                       "11" = "targets",
+                       "12" = "society",
+                       "13" = "donations",
+                       "14" = "governance",
+                       "15" = "society",
+                       "16" = "donations",
+                       "17" = "donations",
+                       "18" = "donations",
+                       "19" = "society",
+                       "20" = "donations",
+                       "21" = "public health",
+                       "22" = "society",
+                       "23" = "society",
+                       "24" = "donations",
+                       "25" = "public health" ))
 
-gamma_terms$gamma <- paste0("_",gamma_terms$gamma)
-write.csv(gamma_terms,file="sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",row.names = F)
+gamma_terms_it$country <- "Italy"
 
-gamma_terms %>%
+save(gamma_terms_it,file="sample/6/6IT/gamma_terms_it.Rdata")
+
+# gamma de ####
+
+gamma_terms_de <- td_gamma %>%
+  group_by(topic) %>%
+  summarise(gamma = mean(gamma)) %>%
+  arrange(desc(gamma)) %>%
+  left_join(top_terms, by = "topic") %>%
+  mutate(label = recode(topic,
+                        "1" = "Cuba",
+                        "2" = "Housing",
+                        "3" = "Cohesion", #*
+                        "4" = "Fight\ninfection",
+                        "5" = "Refugees",
+                        "6" = "Masks",
+                        "7" = "Social\nresponsibility",
+                      #  "8" = "Governance",
+                        "8" = "Governance\nmedia",
+                        "9" = "Europe",
+                        "10" = "Economic\ndamages",
+                        "11" = "International\ncoop",
+                        "12" = "Vaccination",
+                        "13" = "Freedom",
+                        "14" = "Flattencurve",
+                        "15" = "Stayhome",
+                        "16" = "Charity",
+                        "17" = "Local\ninitiatives",
+                        "18" = "European\ngovernance",
+                        "19" = "Lockdown", #*
+                        "20" = "Health")) %>%
+  mutate(type = recode(topic,
+                       "1" = "transnational",
+                       "2" = "society",
+                       "3" = "society",
+                       "4" = "public health",
+                       "5" = "transnational",
+                       "6" = "public health",
+                       "7" = "society",
+                       "8" = "governance",
+                       "9" = "transnational",
+                       "10" = "society",
+                       "11" = "transnational",
+                       "12" = "public health",
+                       "13" = "public health",
+                       "14" = "public health",
+                       "15" = "public health",
+                       "16" = "donations",
+                       "17" = "targets",
+                       "18" = "governance",
+                       "19" = "public health",
+                       "20" = "society"))
+
+gamma_terms_de$country <- "Germany"
+
+save(gamma_terms_de,file="sample/6/6DE/gamma_terms_de.Rdata")
+
+
+# combine topic proportion ####
+load("sample/6/6IT/gamma_terms_it.Rdata")
+load("sample/6/6DE/gamma_terms_de.Rdata")
+
+gamma_terms_it[gamma_terms_it$topic == "16",]$label <- "Corporate responsibility"
+gamma_terms_it[gamma_terms_it$topic == "12",]$label <- "Cooperation"
+gamma_terms_it[gamma_terms_it$topic == "7",]$label <- "Local corporates"
+gamma_terms_de[gamma_terms_de$topic == "8",]$label <- "Governance media"
+
+gamma_terms_it <- gamma_terms_it %>% mutate(label = recode(topic,
+                                                       "1" = "Hospital\ndonations",
+                                                       "2" = "Charity",
+                                                       "3" = "Economy", #
+                                                       "4" = "Covid\noutbreak",
+                                                       "5" = "Food\ndonations",
+                                                       "6" = "Digital\nsolidarity",
+                                                       # "7" = "Third sector",
+                                                       "7" = "Local\ncorporates",
+                                                       "8" = "Health\nemergency", #*
+                                                       "9" = "Europe",
+                                                       "10" = "Local\ndonations",
+                                                       "11" = "Bergamo",
+                                                       # "12" = "Global welfare",
+                                                       "12" = "Cooperation",
+                                                       "13" = "Community\ndonations",
+                                                       "14" = "Services\nmunicipalities",
+                                                       "15" = "Culture",
+                                                       # "16" = "Companies donations", #
+                                                       "16" = "Corporate\nresponsibility", #
+                                                       "17" = "Emergency\ndonations",
+                                                       "18" = "Fundraising", #
+                                                       "19" = "Municipalities\ninitiatives",
+                                                       "20" = "Lockdown", #
+                                                       "21" = "Vaccination",
+                                                       "22" = "Governance", #
+                                                       "23" = "Families",
+                                                       "24" = "Artisans",
+                                                       "25" = "Volunteering" ))
+
+
+gamma_terms_de <- gamma_terms_de %>% mutate(label = recode(topic,
+                                            "1" = "Cuba",
+                                            "2" = "Housing",
+                                            "3" = "Cohesion", #*
+                                            "4" = "Fight\ninfection",
+                                            "5" = "Refugees",
+                                            "6" = "Masks",
+                                            "7" = "Social\nresponsibility",
+                                            #  "8" = "Governance",
+                                            "8" = "Governance\nmedia",
+                                            "9" = "Europe",
+                                            "10" = "Economic\ndamages",
+                                            "11" = "International coop",
+                                            "12" = "Vaccination",
+                                            "13" = "Freedom",
+                                            "14" = "Flattencurve",
+                                            "15" = "Stayhome",
+                                            "16" = "Charity",
+                                            "17" = "Local\ninitiatives",
+                                            "18" = "European\ngovernance",
+                                            "19" = "Lockdown", #*
+                                            "20" = "Health")) 
+
+gamma_tot <- rbind(gamma_terms_it,gamma_terms_de)
+
+# combine plots
+it_prop <- gamma_tot %>%
   # top_n(20, gamma) %>%
-  ggplot(aes(topic, gamma, label = terms, fill = topic)) +
-  geom_col(show.legend = FALSE) +
-  geom_text(hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
+  filter(country == "Italy") %>%
+  ggplot(aes(reorder(label,gamma), gamma, fill = type)) +
+  geom_col() +
+  geom_text(aes(label = terms),hjust = 0, y = 0.001, size = 4, # nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
-  scale_y_continuous(expand = c(0,0),
-                     limits = c(0, 0.10) , 
-                     labels = scales::percent_format()) +
-  theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
-  theme(plot.title = element_text(size = 20,
-                                  family="IBMPlexSans-Bold"),
-        plot.subtitle = element_text(size = 13),
-        axis.text.y = element_text(size = 15)) +
-  labs(x = NULL, y = expression(gamma))
-ggsave(file="sample/DE_1/cvd/DE_25/topic_proportionDE25.jpg",width = 14, height = 12)
- 
+  scale_fill_manual(values= c(
+    "donations" = "lightsalmon",
+    "governance" = "peachpuff",
+    "public health" = "plum1",
+    "society" = "lightskyblue",
+    "targets" = "khaki",
+    "transnational" = "palegreen"
+  ),
+  name = "Solidarity categories") +
+  facet_wrap(~ country, scales = "free") + 
+  scale_y_continuous(label = scales::percent) +
+  theme_bw() +
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
+        axis.text.x = element_text(size = 6),
+        strip.text.x = element_text(size = 12), 
+        legend.position = "bottom",
+        legend.text = element_text(size=12)) +
+  guides(fill=guide_legend(nrow=1))
+
+
+pl <- ggpubr::ggarrange(de_prop,it_prop, ncol = 2, common.legend = TRUE, legend = "bottom")
+ggsave("figures/3_topic_proportion.png",pl,height = 9,width = 14)
+
+
+
+# mutate(topic = paste0("Topic ", topic),topic = reorder(topic, gamma)) 
+
+# gamma_terms$gamma <- paste0("_",gamma_terms$gamma)
+# write.csv(gamma_terms,file="sample/4_DE/de_gamma_terms20.csv",row.names = F)
+# 
+# gamma_terms %>%
+#   # top_n(20, gamma) %>%
+#   ggplot(aes(reorder(topic,gamma),gamma, label = terms, fill = type)) +
+#   geom_col(show.legend = FALSE) +
+#   geom_text(hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
+#             family = "IBMPlexSans") +
+#   coord_flip() +
+#   scale_y_continuous(expand = c(0,0),
+#                      limits = c(0, 0.10) , 
+#                      labels = scales::percent_format()) +
+#   theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
+#   theme(plot.title = element_text(size = 20,
+#                                   family="IBMPlexSans-Bold"),
+#         plot.subtitle = element_text(size = 13),
+#         axis.text.y = element_text(size = 15)) +
+#   labs(x = NULL, y = expression(gamma))
+# 
+# ggsave(file="sample/DE_1/cvd/DE_25/topic_proportionDE25.jpg",width = 14, height = 12)
+#  
 
 # combined plots ####
-de_gamma_terms <- read.csv("sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",sep=";")
-it_gamma_terms <- read.csv("sample/IT_1/cvd/IT25/it_gamma_terms25.csv",sep=";")
-load("sample/IT_1/cvd/IT25/it_gamma_terms25.Rdata")
-it_gamma_terms$gamma <- paste0("_",it_gamma_terms$gamma)
-write.csv(it_gamma_terms,file="sample/IT_1/cvd/IT25/it_gamma_terms25.csv",row.names = F)
-
-de_gamma_terms <- read.csv("sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",sep=";")
-de_gamma_terms$gamma <- gsub("_","",de_gamma_terms$gamma)
-de_gamma_terms$gamma <- as.numeric(de_gamma_terms$gamma)
-
-it_gamma_terms <- read.csv("sample/IT_1/cvd/IT25/it_gamma_terms25.csv",sep=";")
-it_gamma_terms$gamma <- gsub("_","",it_gamma_terms$gamma)
-it_gamma_terms$gamma <- as.numeric(it_gamma_terms$gamma)
-
-de_gamma_terms$country = "Germany"
-it_gamma_terms$country = "Italy"
-
-
-df <- rbind(it_gamma_terms,de_gamma_terms)
-
-de <- de_gamma_terms %>%
-  ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
-  geom_col() +
-  scale_y_continuous(expand = c(0.01, 0)) +
-  scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
-                               "donations" = "orange","governance" = "lightblue","region" = "pink")) +
-  coord_flip() +
-  geom_text(hjust = 0, y = 0.001) +
-  ylab("Germany (topic proportion)") +
-  theme_bw() +
-  theme(axis.title.y = element_blank())
-de
-
-it <- it_gamma_terms %>%
-  ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
-  geom_col() +
-  scale_y_continuous(expand = c(0.01, 0)) +
-  scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
-                               "donations" = "orange","governance" = "lightblue","region" = "pink")) +
-  coord_flip() +
-  geom_text(hjust = 0, y = 0.001) +
-  ylab("Italy (topic proportion)") +
-  theme_bw() +
-  theme(axis.title.y = element_blank())
-ggsave(it,file="figures/test_it.jpg",width = 8,height = 10)
-
-grid.arrange(de,it,ncol = 2)
-
-df %>% 
-  ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
-  geom_col() +
-  coord_flip() +
-  scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
-                               "donations" = "orange","governance" = "lightblue","region" = "pink"),
-                    name = "Solidarity type") +
-  scale_y_continuous(expand = c(0.01,0),
-                     labels = scales::percent_format() ) +
-  ylab("Topic Proportion") +
-  geom_text(hjust = 0, y = 0.001, size = 7) +
-  theme_bw() +
-  facet_wrap(~ country, scales = "free" ) +
-  guides(fill = guide_legend(nrow = 1)) +
-  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_text(size = 19),
-        legend.text = element_text(size=17), legend.title =  element_text(size=17),
-        strip.text.x = element_text(size = 20))
-ggsave(file="figures/topic_proportion.jpg",width = 21,height = 13)
-
-
-
+# de_gamma_terms <- read.csv("sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",sep=";")
+# it_gamma_terms <- read.csv("sample/IT_1/cvd/IT25/it_gamma_terms25.csv",sep=";")
+# load("sample/IT_1/cvd/IT25/it_gamma_terms25.Rdata")
+# it_gamma_terms$gamma <- paste0("_",it_gamma_terms$gamma)
+# write.csv(it_gamma_terms,file="sample/IT_1/cvd/IT25/it_gamma_terms25.csv",row.names = F)
+# 
+# de_gamma_terms <- read.csv("sample/DE_1/cvd/DE_1_20/de_gamma_terms20.csv",sep=";")
+# de_gamma_terms$gamma <- gsub("_","",de_gamma_terms$gamma)
+# de_gamma_terms$gamma <- as.numeric(de_gamma_terms$gamma)
+# 
+# it_gamma_terms <- read.csv("sample/IT_1/cvd/IT25/it_gamma_terms25.csv",sep=";")
+# it_gamma_terms$gamma <- gsub("_","",it_gamma_terms$gamma)
+# it_gamma_terms$gamma <- as.numeric(it_gamma_terms$gamma)
+# 
+# de_gamma_terms$country = "Germany"
+# it_gamma_terms$country = "Italy"
+# 
+# 
+# df <- rbind(it_gamma_terms,de_gamma_terms)
+# 
+# de <- de_gamma_terms %>%
+#   ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
+#   geom_col() +
+#   scale_y_continuous(expand = c(0.01, 0)) +
+#   scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
+#                                "donations" = "orange","governance" = "lightblue","region" = "pink")) +
+#   coord_flip() +
+#   geom_text(hjust = 0, y = 0.001) +
+#   ylab("Germany (topic proportion)") +
+#   theme_bw() +
+#   theme(axis.title.y = element_blank())
+# de
+# 
+# it <- it_gamma_terms %>%
+#   ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
+#   geom_col() +
+#   scale_y_continuous(expand = c(0.01, 0)) +
+#   scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
+#                                "donations" = "orange","governance" = "lightblue","region" = "pink")) +
+#   coord_flip() +
+#   geom_text(hjust = 0, y = 0.001) +
+#   ylab("Italy (topic proportion)") +
+#   theme_bw() +
+#   theme(axis.title.y = element_blank())
+# ggsave(it,file="figures/test_it.jpg",width = 8,height = 10)
+# 
+# grid.arrange(de,it,ncol = 2)
+# 
+# df %>% 
+#   ggplot(aes(reorder(label,gamma), gamma, label = terms, fill = category))  +
+#   geom_col() +
+#   coord_flip() +
+#   scale_fill_manual(values = c("transnational" = "limegreen","social groups" = "red","public health" = "purple",
+#                                "donations" = "orange","governance" = "lightblue","region" = "pink"),
+#                     name = "Solidarity type") +
+#   scale_y_continuous(expand = c(0.01,0),
+#                      labels = scales::percent_format() ) +
+#   ylab("Topic Proportion") +
+#   geom_text(hjust = 0, y = 0.001, size = 7) +
+#   theme_bw() +
+#   facet_wrap(~ country, scales = "free" ) +
+#   guides(fill = guide_legend(nrow = 1)) +
+#   theme(legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_text(size = 19),
+#         legend.text = element_text(size=17), legend.title =  element_text(size=17),
+#         strip.text.x = element_text(size = 20))
+# ggsave(file="figures/topic_proportion.jpg",width = 21,height = 13)
 
  # time topic modelling ####
  
 # tidystm <- tidy(stm_m)
  # tidystm <- rename(tidystm, actor = y.level)
  
- prep <- estimateEffect(1:numm ~ s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
+prep <- estimateEffect(1:numm ~ s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
+
+
+effects_int <- get_effects(estimates = prep,
+                              variable = 'datenum',
+                              type = 'continuous'  )  
+
+load("sample/6/6DE/de6_effects_int.Rdata")
+load("sample/6/6IT/it6_effects_int.Rdata")
+
+tidystm <- tidy(stm_m)
  
- it_effects_int <- get_effects(estimates = prep,
-                            variable = 'datenum',
-                            type = 'continuous'  )  
- 
- 
-it_tm <- it_effects_int %>%  filter(topic == c(20,23,17,2)) %>%
-   ggplot(aes(x = value, y = proportion, color = as.factor(topic))) + geom_line(size = 1.5) + 
-   scale_x_continuous(breaks = c(18289,18414,18627,18809,18992),
-     labels = c("18289" = "GEN 20","18414" = "JUN 20","18627" = "JAN 21","18809" = "JUN 21",
-         "18992" = "DEC 21")) +
-    scale_color_manual(values = c("20" = "orange","23" = "purple", "17" = "lightblue","2" = "limegreen"),
-                       labels = c("20" = "Groceries Donations","23" = "Lockdown", "17" = "Digital Services","2" = "Hospital Donations"),
-                       name = "Topics" ) +
-  scale_y_continuous(labels = scales::percent_format() ) +
-   ggtitle("Italy") + 
- #  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-   ylab("Expected Proportion") +
-   xlab("Time") +
-   theme_bw() +
-  theme(axis.title.x = element_blank(), legend.position = "bottom",
-        legend.text = element_text(size=12), legend.title =  element_text(size=12))
+de6_effects_int <- de6_effects_int %>% mutate(label = recode(topic,
+                                                          "1" = "Cuba",
+                                                          "2" = "Housing",
+                                                          "3" = "Cohesion", #*
+                                                          "4" = "Fight infection",
+                                                          "5" = "Refugees",
+                                                          "6" = "Masks",
+                                                          "7" = "Social responsibility",
+                                                          #  "8" = "Governance",
+                                                          "8" = "Governance media",
+                                                          "9" = "Europe",
+                                                          "10" = "Economic damages",
+                                                          "11" = "International coop",
+                                                          "12" = "Vaccination",
+                                                          "13" = "Freedom",
+                                                          "14" = "Flattencurve",
+                                                          "15" = "Stayhome",
+                                                          "16" = "Charity",
+                                                          "17" = "Local initiatives",
+                                                          "18" = "European governance",
+                                                          "19" = "Lockdown", #*
+                                                          "20" = "Health")) 
 
-de_tm <- de_effects_int %>%  filter(topic == c(6,16,15,11)) %>%
-  ggplot(aes(x = value, y = proportion, color = as.factor(topic))) + geom_line(size = 1.5) + 
-  scale_x_continuous(breaks = c(18304,18414,18627,18809,18992),
-                     labels = c("18304" = "FEB 20","18414" = "JUN 20","18627" = "JAN 21","18809" = "JUN 21",
-                                "18992" = "DEC 21")) +
-  scale_y_continuous(labels = scales::percent_format() ) +
-  scale_color_manual(values = c("6" = "limegreen","16" = "purple", "15" = "orange","11" = "lightblue"),
-                     labels = c("6" = "Refugees","16" = "Vaccination", "15" = "Lockdown","11" = "Freedom"),
-                     name = "Topics" ) +
-  ggtitle("Germany") + 
-  #  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-  ylab("Expected Proportion") +
-  xlab("Time") +
-  theme_bw() +
-  theme(axis.title.x = element_blank(), legend.position = "bottom",
-        legend.text = element_text(size=12), legend.title =  element_text(size=12))
- 
+it6_effects_int <- it6_effects_int %>% mutate(label = recode(topic,
+                                                             "1" = "Hospital donations",
+                                                             "2" = "Charity",
+                                                             "3" = "Economy", #
+                                                             "4" = "Covid outbreak",
+                                                             "5" = "Food donations",
+                                                             "6" = "Digital solidarity",
+                                                             # "7" = "Third sector",
+                                                             "7" = "Local corporate",
+                                                             "8" = "Health emergency", #*
+                                                             "9" = "Europe",
+                                                             "10" = "Local donations",
+                                                             "11" = "Bergamo",
+                                                             # "12" = "Global welfare",
+                                                             "12" = "Cooperation",
+                                                             "13" = "Community donations",
+                                                             "14" = "Services municipalities",
+                                                             "15" = "Culture",
+                                                             # "16" = "Companies donations", #
+                                                             "16" = "Corporate responsibility", #
+                                                             "17" = "Emergency donations",
+                                                             "18" = "Fundraising", #
+                                                             "19" = "Municipalities initiatives",
+                                                             "20" = "Lockdown", #
+                                                             "21" = "Vaccination",
+                                                             "22" = "Governance", #
+                                                             "23" = "Families",
+                                                             "24" = "Artisans",
+                                                             "25" = "Volunteering" ))
 
-prev <- grid.arrange(it_tm,de_tm)
-ggsave(prev,file="figures/topic_prevalence.jpg",width = 8,height = 7)
 
+numm <- 20
+effects_int <- de6_effects_int
 
-
-
- 
  for (i in 1:numm) {
-   
- 
+    
 tm <- effects_int %>%  filter(topic == i) %>%
    ggplot(aes(x = value, y = proportion )) + geom_line() + scale_x_continuous(breaks = c(18262,18414,18627,18809,18992),
                       labels = c("18262" = "JAN 2020","18414" = "JUN 2020","18627" = "JAN 2021","18809" = "JUN 2021",
                                  "18992" = "DEC 2021")) +
-  ggtitle(paste( "Topic: ",i)) + 
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  ggtitle(paste( "Topic: ",effects_int[effects_int$topic == i,]$label)) + 
   ylab("Expected Proportion") +
   xlab("Time") +
   theme_bw() 
    
 wd <- tidystm %>% filter(topic == i) %>%
-filter(term %nin% c("solidarity",cvd)) %>%
+filter(! term %in% c("solidarity",cvd)) %>%
   arrange(-beta) %>%
-  top_n(8,beta) %>%
+  top_n(10,beta) %>%
   ggplot(aes(reorder(term,beta),beta)) +
   geom_col(show.legend = FALSE) +
   scale_y_continuous(label = scales::percent ) +
@@ -845,49 +1232,110 @@ filter(term %nin% c("solidarity",cvd)) %>%
   theme_bw() 
  
 cm <- grid.arrange(tm,wd,ncol = 2)
-ggsave(cm,file = paste0("sample/DE_1/cvd/","DE_1_30","_",i,".jpg"),width = 14, height = 3.5)
+ggsave(cm,file = paste0("sample/6/6DE_sm/","DE_20","_",i,".jpg"),width = 14, height = 3.5)
  
  }
  
- # topicCorr
- 
- 
- library(stm)
- library(ggraph)
- library(quanteda)
- 
- stm_corrs <- get_network(model = stm_m,
-                          method = 'simple',
-                          labels = paste('Topic', 1:numm),
-                          cutoff = 0.001,
-                          cutiso = TRUE)
- 
- stm_corrs <- get_network(model = stm_corrs,
-                          method = 'simple',
-                          labels = paste('Topic', 1:numm),
-                          cutoff = 0.001,
-                          cutiso = TRUE)
- 
- ggraph(stm_corrs, layout = 'fr') +
-   geom_edge_link(
-     aes(edge_width = weight),
-     label_colour = '#fc8d62',
-     edge_colour = '#377eb8') +
-   geom_node_point(size = 4, colour = 'black')  +
-   geom_node_label(
-     aes(label = name, size = props),
-     colour = 'black',  repel = TRUE, alpha = 0.85) +
-   scale_size(range = c(2, 10), labels = scales::percent) +
-   labs(size = 'Topic Proportion',  edge_width = 'Topic Correlation') +
-   scale_edge_width(range = c(1, 3)) +
-   theme_graph()
-#
- 
-tidy_stm <- tidy(stm_m)
 
-kn_stm <- tidy_stm %>% filter(term %in% top_keynessDE) %>% group_by(term) %>% slice_max(n = 2, beta)
+prep <- estimateEffect(1:numm ~ s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
+
+de_effects_int <- get_effects(estimates = prep,
+                              variable = 'datenum',
+                              type = 'continuous'  )  
+
+
+load("sample/6/6DE/de6_effects_int.Rdata")
+load("sample/6/6IT/it6_effects_int.Rdata")
+
+it_tm <- it6_effects_int %>% mutate(country = "Italy")  %>%  filter(topic %in% c(2,23,3,14,4,21,20)) %>%
+  ggplot(aes(x = value, y = proportion, color = as.factor(topic))) + geom_line() + 
+  scale_x_continuous(breaks = c(18289,18414,18627,18809,18992),
+                     labels = c("18289" = "GEN 20","18414" = "JUN 20","18627" = "JAN 21","18809" = "JUN 21",
+                                "18992" = "DEC 21")) +
+ scale_color_manual(values = c("2" = "red","23" = "blue", "3" = "black","14" = "gray",
+                               "4" = "pink","21" = "purple","20" = "brown"),
+                    labels = c("2" = "Charity","23" = "Families", "3" = "Economy",
+                               "14" = "Services\nmunicipalities","4" = "Covid\noutbreak","21" = "Vaccination",
+                               "20" = "Lockdown" ),
+                    name = "Topics" ) +
+ scale_y_continuous(labels = scales::percent_format() ) +
+  facet_wrap(~ country) +
+ # ggtitle("Italy") + 
+  #  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  ylab("Expected Proportion") +
+  xlab("Time") +
+  theme_bw() +
+  theme(axis.title.x = element_blank(), legend.position = "bottom",
+        strip.text.x = element_text(size = 12), legend.text = element_text(size=12),
+        legend.title =  element_text(size=12))
+
+de_tm <- de6_effects_int %>% mutate(country = "Germany")  %>%  filter(topic %in% c(5,12,13,10,16,17,19)) %>%
+  ggplot(aes(x = value, y = proportion, color = as.factor(topic))) + geom_line() + 
+  scale_x_continuous(breaks = c(18304,18414,18627,18809,18992),
+                     labels = c("18304" = "FEB 20","18414" = "JUN 20","18627" = "JAN 21","18809" = "JUN 21",
+                                "18992" = "DEC 21")) +
+  scale_y_continuous(labels = scales::percent_format() ) +
+  scale_color_manual(values = c("5" = "limegreen","12" = "purple", "13" = "orange","10" = "black",
+                                "16" = "red","17" = "blue", "19" = "brown"),
+                       labels = c("5" = "Refugees","12" = "Vaccination", "13" = "Freedom","10" = "Economic damages",
+                                  "16" = "Charity","17" = "Local Initiatives", "19" = "Lockdown"),
+                     name = "Topics" ) +
+  facet_wrap(~ country) + 
+ # ggtitle("Germany") + 
+ #  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  ylab("Expected Proportion") +
+  xlab("Time") +
+  theme_bw() +
+  theme(axis.title.x = element_blank(), legend.position = "bottom",
+        strip.text.x = element_text(size = 12),
+        legend.text = element_text(size=12), legend.title =  element_text(size=12))
+
+
+prev <- grid.arrange(it_tm,de_tm)
+ggsave(prev,file="figures/topic_prevalence.jpg",width = 8,height = 7)
+
+
+
+
+ # topicCorr ####
  
  
+#  library(stm)
+#  library(ggraph)
+#  library(quanteda)
+#  
+#  stm_corrs <- get_network(model = stm_m,
+#                           method = 'simple',
+#                           labels = paste('Topic', 1:numm),
+#                           cutoff = 0.001,
+#                           cutiso = TRUE)
+#  
+#  stm_corrs <- get_network(model = stm_corrs,
+#                           method = 'simple',
+#                           labels = paste('Topic', 1:numm),
+#                           cutoff = 0.001,
+#                           cutiso = TRUE)
+#  
+#  ggraph(stm_corrs, layout = 'fr') +
+#    geom_edge_link(
+#      aes(edge_width = weight),
+#      label_colour = '#fc8d62',
+#      edge_colour = '#377eb8') +
+#    geom_node_point(size = 4, colour = 'black')  +
+#    geom_node_label(
+#      aes(label = name, size = props),
+#      colour = 'black',  repel = TRUE, alpha = 0.85) +
+#    scale_size(range = c(2, 10), labels = scales::percent) +
+#    labs(size = 'Topic Proportion',  edge_width = 'Topic Correlation') +
+#    scale_edge_width(range = c(1, 3)) +
+#    theme_graph()
+# #
+#  
+# tidy_stm <- tidy(stm_m)
+# 
+# kn_stm <- tidy_stm %>% filter(term %in% top_keynessDE) %>% group_by(term) %>% slice_max(n = 2, beta)
+#  
+#  
  
  
  
@@ -896,27 +1344,20 @@ kn_stm <- tidy_stm %>% filter(term %in% top_keynessDE) %>% group_by(term) %>% sl
  library(igraph)
  library(ggraph)
  
- load("sample/df_we.Rdata")
-
- top_keynessDE <- c("leavenoonebehind","flattenthecurve","demands","vaccinated","berlin","stayathome","soldary","lived","vaccination",
-                  "spd","federal_government","bundestag","1mai","moria")
- 
- top_keynessIT <- c("iorestoacasa","rome","digital_solidarity","groceries","naples","lazio","third_sector",
-                    "papafrancesco","fundraiser","generosity","mln_euros","milan","health_emergency","donates")
 
 # df_finlocast %>% unnest_tokens(word, text, token = stringr::str_split, pattern = " ")
  
- skip_df <- df_we %>% filter(country == "Germany") %>%
-   # unnest_tokens(ngram, text, token = stringr::str_split, pattern = " ")   %>%
-    unnest_tokens(ngram, text, token = "ngrams", n = 5) %>%
+ skip_df <- df_we4 %>% filter(country == "Germany") %>%
+   unnest_tokens(ngram, text, token = stringr::str_split, pattern = " ") %>%
+  #  unnest_tokens(ngram, text, token = "ngrams", n = 5) %>%
    mutate(ngramID = row_number()) %>% 
-   tidyr::unite(skipgramID, tweet_id, ngramID) %>%
+  # tidyr::unite(skipgramID, tweet_id, ngramID) %>%
    unnest_tokens(word, ngram) %>%
    filter(!word %in% stop_words$word,
           !word %in% rem_char,
-          !word %in% stopwords("en"), 
-          !word %in% stopwords_en,
           !word %in% rem)
+ 
+ 
  
  
  # unigram_probs <- df_we %>% filter(country == "Germany") %>%
@@ -931,11 +1372,12 @@ kn_stm <- tidy_stm %>% filter(term %in% top_keynessDE) %>% group_by(term) %>% sl
  #   mutate(p = n / sum(n))
  # 
  skipgram_probs <- skip_df %>%
-   pairwise_count(word, skipgramID, diag = FALSE, sort = TRUE) %>%
+   pairwise_count(word, tweet_id, diag = FALSE, sort = TRUE) %>%
    mutate(p = n / sum(n)) 
 
+ corrr <- skip_df %>%   pairwise_cor(word,tweet_id,sort = TRUE)
  
- a <- skipgram_probs %>% filter(item1 %in% top_keynessDE)
+ a <- skipgram_probs %>% filter(item1 == "leavenoonebehind")
  a <- a %>% filter(! item1 == item2)
  b <- skipgram_probs %>% filter(item1 %in% a$item2)
  b <- b %>% filter(! item2 %in% a$item1)
@@ -955,6 +1397,542 @@ a %>% filter(n >= 8) %>% graph_from_data_frame() %>%
  plot(occit)
  ggsave(occit,file="occit.jpg",width =10,height=10)
  
+ # 
+ 
+ tidy_it <- tidy(stm_it25) %>% group_by(topic) %>% 
+   filter(! term %in% cvd) %>%
+   slice_max(beta,n = 10)
+ 
+ tidy_de <- tidy(stm_de25) %>% group_by(topic) %>% 
+   filter(! term %in% cvd) %>%
+   slice_max(beta,n = 10)
+ 
+ tidy_it$topic <- as.character(tidy_it$topic)
+ 
+ tidy_it[tidy_it$topic == "1",]$topic <-  "CARITAS"
+ tidy_it[tidy_it$topic == "2",]$topic <-  "FIRST\nPHASE"
+ tidy_it[tidy_it$topic == "3",]$topic <-  "HEALTH\nEMERGENCY"
+ tidy_it[tidy_it$topic == "4",]$topic <-  "FOOD\nDONATIONS"
+ tidy_it[tidy_it$topic == "5",]$topic <-  "EUROPE"
+ tidy_it[tidy_it$topic == "6",]$topic <-  "CITIZENS"
+ tidy_it[tidy_it$topic == "7",]$topic <-  "UDINE"
+ tidy_it[tidy_it$topic == "8",]$topic <-  "CHILDREN"
+ tidy_it[tidy_it$topic == "9",]$topic <-  "SICILY"
+ tidy_it[tidy_it$topic == "10",]$topic <-  "BERGAMO"
+ tidy_it[tidy_it$topic == "11",]$topic <-  "WELFARE"
+ tidy_it[tidy_it$topic == "12",]$topic <-  "MONEY"
+ tidy_it[tidy_it$topic == "13",]$topic <-  "DIGITAL\nSERVICES"
+ tidy_it[tidy_it$topic == "14",]$topic <-  "CHALLENGES"
+ tidy_it[tidy_it$topic == "15",]$topic <-  "DONATIONS\nCALLS"
+ tidy_it[tidy_it$topic == "16",]$topic <-  "FUNDRAISING"
+ tidy_it[tidy_it$topic == "17",]$topic <-  "GESTURES"
+ tidy_it[tidy_it$topic == "18",]$topic <-  "LOCKDOWN"
+ tidy_it[tidy_it$topic == "19",]$topic <-  "REPRESENTATIONS"
+ tidy_it[tidy_it$topic == "20",]$topic <-  "GOVERNMENT"
+ tidy_it[tidy_it$topic == "21",]$topic <-  "POVERTY"
+ tidy_it[tidy_it$topic == "22",]$topic <-  "CHRISTMAS"
+ tidy_it[tidy_it$topic == "23",]$topic <-  "SUPPORT"
+ tidy_it[tidy_it$topic == "24",]$topic <-  "COMPANIES"
+ tidy_it[tidy_it$topic == "25",]$topic <-  "NEWS"
+ 
+ 
+ vert_class <- c(tidy_it$topic,tidy_it$term) %>% unique()
+ vert_class <- data.frame(name = vert_class)
+ vert_class$classified <- "x"
+ vert_class[vert_class$name %in% c("CARITAS","FOOD\nDONATIONS","SICILY",
+                              "DONATIONS\nCALLS","FUNDRAISING","GESTURES",
+                              "CHRISTMAS","SUPPORT","COMPANIES"),]$classified <- "donations"
+ vert_class[vert_class$name %in% c("NEWS","GOVERNMENT"),]$classified <- "governance media"
+ vert_class[vert_class$name %in% c("HEALTH\nEMERGENCY","DIGITAL\nSERVICES","LOCKDOWN"),]$classified <- "public\nhealth"
+ vert_class[vert_class$name %in% c("WELFARE","MONEY","CHALLENGES","REPRESENTATIONS","POVERTY"),]$classified <- "society"
+ vert_class[vert_class$name %in% c("FIRST\nPHASE","CITIZENS","UDINE","CHILDREN","BERGAMO"),]$classified <- "targets"
+ vert_class[vert_class$name %in% c("EUROPE"),]$classified <- "transnational"
+ vert_class[vert_class$name %in% top_keynessIT,]$classified <- "keyness"
+ # vert_class[vert_class$name == "solidarity",]$classified <- "solidarity"
  
  
  
+ 
+ 
+it_g <- tidy_it %>% graph_from_data_frame(vertices = vert_class)
+de_g <- tidy_de %>% graph_from_data_frame()
+
+   ggraph(it_g,layout = "fr") +
+   geom_edge_link(aes(edge_alpha = (beta * 1000000)),edge_width = 1, show.legend = FALSE) + 
+   # geom_node_point(size = 5) +
+   geom_node_text(aes(label = name,
+                      color = classified),
+                 repel = TRUE
+                 # point.padding = unit(0.2, "lines"),
+                 ) +
+     scale_color_manual(values=c("donations" = "red","governance media" = "cyan","public\nhealth" = "purple",
+                          "society" = "orange","targets" = "brown",
+                          "transnational" = "darkgreen","keyness" = "blue",
+                          "x" = "black"),
+                        breaks = c("donations","governance","public\nhealth","society",
+                                   "targets","transnational","governance media"),
+                        name = "Solidarity category topics:") +
+     theme_void() +
+     theme(legend.position = "bottom")
+ 
+   
+   ggraph(de_g,layout = "fr") +
+     geom_edge_link(aes(edge_alpha = (beta * 1000000)),edge_width = 1, show.legend = FALSE) + 
+     # geom_node_point(size = 5) +
+     geom_node_text(aes(label = name,
+                       ),
+                    repel = TRUE
+                    # point.padding = unit(0.2, "lines"),
+     ) +
+     theme_void() +
+     theme(legend.position = "bottom") 
+   
+   
+### beta ####
+# 
+#    
+#    
+#    top_keynessDE <- c("leavenoonebehind","flattenthecurve","demands","vaccinated","berlin","stayathome","soldary","lived","vaccination",
+#                       "spd","federal_government","bundestag","1mai","moria")
+#    
+#    top_keynessIT <- c("iorestoacasa","rome","digital_solidarity","groceries","naples","lazio","third_sector",
+#                       "papafrancesco","fundraiser","generosity","mln_euros","milan","health_emergency","donates")
+#    
+#    
+#    
+#    
+#    tidyde <- tidy(stm_de20)
+#    
+#    tidyde$type <- "x"
+#    tidyde[tidyde$topic %in% c(1,5,9,11),]$type <- "transnational"
+#    tidyde[tidyde$topic %in% c(2,3,7,10,20),]$type <- "society"
+#    tidyde[tidyde$topic %in% c(4,6,12,13,14,15,19),]$type <- "public health"
+#    tidyde[tidyde$topic %in% c(17),]$type <- "targets"
+#    tidyde[tidyde$topic %in% c(8,18),]$type <- "governance"
+#    tidyde[tidyde$topic %in% c(16),]$type <- "donations"
+# 
+#    
+#    tidyde$topic <- as.character(tidyde$topic)
+#    
+#    tidyde %>%
+#      group_by(topic) %>%
+#      mutate(topic = recode(topic,
+#                "1" = "Cuba",
+#                 "2" = "Housing",
+#                 "3" = "Cohesion", #*
+#                 "4" = "Fight\ninfection",
+#                 "5" = "Refugees",
+#                 "6" = "Masks",
+#                 "7" = "Social\nresponsibility",
+#                 "8" = "Governance",
+#                 "9" = "Europe",
+#                 "10" = "Economic\ndamages",
+#                 "11" = "International\ncoop",
+#                 "12" = "Vaccination",
+#                 "13" = "Freedom",
+#                 "14" = "Flattencurve",
+#                 "15" = "Stayhome",
+#                 "16" = "Charity",
+#                 "17" = "Local\ninitiatives",
+#                 "18" = "European\ngovernance",
+#                 "19" = "Lockdown", #*
+#                 "20" = "Health")) %>%
+#      filter(! term %in% c("solidarity",cvd)) %>%
+#      arrange(-beta) %>%
+#      top_n(8,beta) %>%
+#      ggplot(aes(reorder(term,beta),beta, fill = type)) +
+#      geom_col() +
+#      scale_y_continuous(label = scales::percent, n.breaks = 2 ) +
+#      ylab("Probability per topic") +
+#      facet_wrap(~ topic, scales= "free", ncol = 5
+#                 ) +
+#      scale_fill_manual(values= c(
+#        "donations" = "salmon",
+#        "governance" = "goldenrod",
+#        "public health" = "purple",
+#        "society" = "turquoise4",
+#        "targets" = "red4",
+#        "transnational" = "darkgreen"
+#                                  ),
+#        name = "Solidarity categories") +
+#      coord_flip() +
+#      theme_bw() +
+#      ggtitle("Germany") +
+#      theme(axis.title.y = element_blank(), legend.position = "bottom") +
+#      guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+#    ggsave(file="figures/topicDE_6.jpg", height = 8,width = 10)
+#    
+   
+### Italy
+#    
+#    tidyit <- tidy(stm_it25)
+#    
+#    tidyit$type <- "x"
+#    tidyit[tidyit$topic %in% c(9),]$type <- "transnational"
+#    tidyit[tidyit$topic %in% c(6,12,15,19,22,23),]$type <- "society"
+#    tidyit[tidyit$topic %in% c(8,21,25),]$type <- "public health"
+#    tidyit[tidyit$topic %in% c(2,4,11),]$type <- "targets"
+#    tidyit[tidyit$topic %in% c(14),]$type <- "governance"
+#    tidyit[tidyit$topic %in% c(1,3,13,16,5,7,10,18,20,24,17),]$type <- "donations"
+#    
+#    
+#    tidyit %>%
+#      group_by(topic) %>%
+#      mutate(topic = recode(topic,
+#                            "1" = "Hospital\ndonations",
+#                            "2" = "Charity",
+#                            "3" = "Economy", #
+#                            "4" = "Covid\noutbreak",
+#                            "5" = "Food\ndonations",
+#                            "6" = "Digital\nsolidarity",
+#                            "7" = "Third\nsector",
+#                            "8" = "Health\nemergency", #*
+#                            "9" = "Europe",
+#                            "10" = "Local\ndonations",
+#                            "11" = "Bergamo",
+#                            "12" = "Global\nwelfare",
+#                            "13" = "Community\ndonations",
+#                            "14" = "Services\nmunicipalities",
+#                            "15" = "Culture",
+#                            "16" = "Companies\ndonations", #
+#                            "17" = "Emergency\ndonations",
+#                            "18" = "Fundraising", #
+#                            "19" = "Municipalities\ninitiatives",
+#                            "20" = "Lockdown", #
+#                            "21" = "Vaccination",
+#                            "22" = "Governance", #
+#                            "23" = "Families",
+#                            "24" = "Artisans",
+#                            "25" = "Volunteering"
+#                            )) %>%
+#      filter(! term %in% c("solidarity",cvd)) %>%
+#      arrange(-beta) %>%
+#      top_n(8,beta) %>%
+#      ggplot(aes(reorder(term,beta),beta, fill = type)) +
+#      geom_col() +
+#      scale_y_continuous(label = scales::percent, n.breaks = 2 ) +
+#      ylab("Probability per topic") +
+#      facet_wrap(~ topic, scales= "free", ncol = 5) +
+#      scale_fill_manual(values= c(
+#        "donations" = "salmon",
+#        "governance" = "goldenrod",
+#        "public health" = "purple",
+#        "society" = "turquoise4",
+#        "targets" = "red4",
+#        "transnational" = "darkgreen"
+#      ),
+#      name = "Solidarity categories") +
+#      coord_flip() +
+#      theme_bw() +
+#      ggtitle("Italy") +
+#      theme(axis.title.y = element_blank(), legend.position = "bottom") +
+#      guides(fill = guide_legend(nrow = 1, byrow = TRUE))
+#    ggsave(file="figures/topicIT25_6.jpg", height = 9,width = 10)
+#      
+# # combine topic proportion
+#    
+#    
+#    stm_dfit <- quanteda::convert(dfm_itsolcv,to = "stm") 
+#    
+#    td_gamma <- tidy(stm_it25, matrix = "gamma")
+#    ID_row <- names(stm_dfit$documents) # the name of documents gets lost, the row number is reported
+#    td_gamma <- cbind(td_gamma,ID_row) # Here I map each document to its name via row, I checked with content, it works
+#    td_gamma <- cbind(td_gamma,dfb) # merge the gamma matrix with the dataframe via ID, so the variables to sort documents can be used
+#    
+#    gamma_terms <- td_gamma %>%
+#      group_by(topic) %>%
+#      summarise(gamma = mean(gamma)) %>%
+#      arrange(desc(gamma)) %>%
+#      left_join(top_terms, by = "topic")
+#    
+#    gamma_terms$type <- "x"
+#    gamma_terms[gamma_terms$topic %in% c(9),]$type <- "transnational"
+#    gamma_terms[gamma_terms$topic %in% c(6,12,14,15,19,22,23),]$type <- "society"
+#    gamma_terms[gamma_terms$topic %in% c(17,21),]$type <- "public health"
+#    gamma_terms[gamma_terms$topic %in% c(2,4,8,11),]$type <- "targets"
+#    gamma_terms[gamma_terms$topic %in% c(25),]$type <- "governance"
+#    gamma_terms[gamma_terms$topic %in% c(1,3,13,16,5,7,10,18,20,24),]$type <- "donations"
+#    
+#    gamma_terms <- gamma_terms %>%
+#      mutate(topic = recode(topic,
+#                            "1" = "Hospital donations",
+#                            "2" = "Charity",
+#                            "3" = "Economy", #
+#                            "4" = "Covid outbreak",
+#                            "5" = "Food donations",
+#                            "6" = "Digital solidarity",
+#                            "7" = "Third sector",
+#                            "8" = "Children", #*
+#                            "9" = "Europe",
+#                            "10" = "Local donations",
+#                            "11" = "Bergamo",
+#                            "12" = "Global welfare",
+#                            "13" = "Community donations",
+#                            "14" = "Services municipalities",
+#                            "15" = "Solidarity funds",
+#                            "16" = "Companies donations", #
+#                            "17" = "Fundraising",
+#                            "18" = "Food campaign", #
+#                            "19" = "Local initiatives",
+#                            "20" = "Hospital support", #
+#                            "21" = "Vaccination",
+#                            "22" = "Governance", #
+#                            "23" = "Families",
+#                            "24" = "Artisans",
+#                            "25" = "Health emergency"
+#      ))
+#    
+# 
+#    gamma_terms$country <- "Italy"
+#    gamma_it <- gamma_terms
+#    
+#    # germany
+#    
+#    td_gamma <- tidy(stm_m, matrix = "gamma")
+#    ID_row <- names(stm_df$documents) # the name of documents gets lost, the row number is reported
+#    td_gamma <- cbind(td_gamma,ID_row) # Here I map each document to its name via row, I checked with content, it works
+#    td_gamma <- cbind(td_gamma,dfb) # merge the gamma matrix with the dataframe via ID, so the variables to sort documents can be used
+#    
+#    gamma_terms <- td_gamma %>%
+#      group_by(topic) %>%
+#      summarise(gamma = mean(gamma)) %>%
+#      arrange(desc(gamma)) %>%
+#      left_join(top_terms, by = "topic")
+#    
+#    gamma_terms$type <- "x"
+#    gamma_terms[gamma_terms$topic %in% c(1,5,9,11),]$type <- "transnational"
+#    gamma_terms[gamma_terms$topic %in% c(2,3,7,10,19,20),]$type <- "society"
+#    gamma_terms[gamma_terms$topic %in% c(4,6,12,13,14,15),]$type <- "public health"
+#    gamma_terms[gamma_terms$topic %in% c(17),]$type <- "targets"
+#    gamma_terms[gamma_terms$topic %in% c(8,18),]$type <- "governance"
+#    gamma_terms[gamma_terms$topic %in% c(16),]$type <- "donations"
+#    
+#    
+#    gamma_terms <- gamma_terms %>%
+#      mutate(topic = recode(topic, "1" = "Cuba",
+#                                                  "2" = "Housing",
+#                                                  "3" = "Cohesion", #*
+#                                                  "4" = "Fight infection",
+#                                                  "5" = "Refugees",
+#                                                  "6" = "Masks",
+#                                                  "7" = "Social responsibility",
+#                                                  "8" = "Governance",
+#                                                  "9" = "Europe",
+#                                                  "10" = "Economic damages",
+#                                                  "11" = "International coop",
+#                                                  "12" = "Vaccination",
+#                                                  "13" = "Freedom",
+#                                                  "14" = "Flattencurve",
+#                                                  "15" = "Stayhome",
+#                                                  "16" = "Charity",
+#                                                  "17" = "Local initiatives",
+#                                                  "18" = "European governance",
+#                                                  "19" = "Common fight", #*
+#                                                  "20" = "Health"))
+#    
+#    
+#    gamma_terms$country <- "Germany"
+#    gamma_de <- gamma_terms
+   
+
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+# dataframe time ####
+
+load("sample/df_eurostat.Rdata")
+load("sample/whodf.Rdata")
+df_eurostat$date <- as.character(df_eurostat$date)
+
+who <- who %>% select(country, datenum, date, New_cases)
+
+df_eurostat <- df_eurostat %>% group_by(country) %>% mutate(
+  unemplnr = norm_minmax(unemployment),
+  inflationr = norm_minmax(inflation)
+)
+
+who <- who %>% group_by(country) %>% mutate(
+  newcasesnr = norm_minmax(New_cases)
+)
+
+df_eurostat <- df_eurostat %>% gather(variable, value, c(unemplnr,inflationr,unemployment,inflation),  factor_key=TRUE)
+who <- who %>% gather(variable, value, c(New_cases,newcasesnr), factor_key = TRUE)
+
+df <- rbind(df_eurostat,who)
+
+
+
+
+df <- df %>% group_by(country, variable) %>% norm_minmax(value)
+
+
+
+
+
+
+
+df_eurostat <- df_eurostat %>% group_by(country) %>%
+  mutate(
+    unemplnr = norm_minmax(unemployment),
+    inflatnr = norm_minmax(inflation)
+  )
+
+df_eurostat <- df_eurostat %>% gather(variable, value, c(unemployment,inflation, unemplnr,inflatnr), factor_key=TRUE)
+df_eurostat <- df_eurostat %>% filter(variable %in% c("unemplnr","inflatnr"))
+
+df <- rbind(df_eurostat,whodf_lg)
+df$variable <- as.factor(df$variable)
+
+df %>% filter(variable %in% c("unemplnr","inflationr","newcasesnr")) %>% 
+  ggplot(aes(x = datenum, y = value, color = variable )) + geom_line() +
+  facet_wrap(~ country) +
+  scale_color_manual(values = c("unemplnr" = "darkgreen","inflationr" = "red","newcasesnr" = "blue"),
+                     labels = c("unemplnr" = "unemployment","inflationr" = "inflation","newcasesnr" = "new cases"),
+                     name = "") +
+  scale_x_continuous(breaks = c(18400,18600,18800,18992),
+                     labels = c("18400" = "MAY 20","18600" = "DEC 20","18800" = "JUN 21","18992" = "DEC 21")) +
+  xlab("Date") + 
+  theme_bw() +
+  theme(legend.position = "bottom", axis.title.y = element_blank())
+
+
+
+df %>% filter(variable %in% c("unemployment","inflation","New_cases")) %>% 
+  ggplot(aes(x = datenum, y = value, color = country )) + geom_line() +
+  facet_wrap(~ country) +
+  scale_color_manual(values = c("Italy" = "darkgreen","Germany" = "red"),
+                     name = "Country") +
+  scale_x_continuous(breaks = c(18400,18600,18800,18992),
+                     labels = c("18400" = "MAY 20","18600" = "DEC 20","18800" = "JUN 21","18992" = "DEC 21")) +
+  facet_wrap(~ variable, scales = "free") +
+  xlab("Date") + 
+  theme_bw() +
+  theme(legend.position = "bottom", axis.title.y = element_blank())
+
+##########################
+load("sample/df_eurostat.Rdata")
+load("sample/whodf.Rdata")
+df_eurostat$date <- as.character(df_eurostat$date)
+# 2019-01-01 17897
+# 2020-01-01 18262
+# 2021-01-01 18628
+# 2022-01-01 18993
+
+eurostat.labs <- c("Debt Gross", "Inflation", "% Unemployment")
+names(eurostat.labs) <- c("debtgross", "inflation", "unemployment")
+
+espic <- df_eurostat %>% filter(country %in% c("EU","Italy","Germany") & datenum >= 17897 & datenum <= 18993) %>%
+  ggplot(aes(x = datenum, y = value, color = country)) +
+          # geom_point() +
+           geom_line() +
+  scale_color_manual(values = c("EU" = "blue","Italy" = "red", "Germany" = "darkgreen"),
+                     name = "Country") +
+           facet_wrap(~  variable, scales = "free",
+                      labeller = labeller(variable = eurostat.labs) ) +
+  scale_x_continuous(breaks = c(17897,18262,18628,18993),
+                     labels = c("17897" = "JAN 2019","18262" = "JAN 2020","28628" = "JAN 2021","18993" = "DEC 2021")) +
+  geom_vline(xintercept = 18262, color = "gray") +
+  ggtitle("Economic indicators") +
+ # xlab("Time") +
+  theme_bw() + 
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
+        strip.text.x = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5))
+
+ who <- who %>% gather(variable, value, c(New_cases,New_deaths), factor_key=TRUE)
+
+who.labs <- c("New cases", "New deaths")
+names(who.labs) <- c("New_cases", "New_deaths")
+
+whopic <- who %>% ggplot(aes(x = datenum, y = value, color = country)) +
+  geom_line() +
+  scale_color_manual(values = c("EU" = "blue","Italy" = "red", "Germany" = "darkgreen"),
+                     name = "Country") +
+  scale_x_continuous(breaks = c(18262,18628,18993),
+                     labels = c("18262" = "JAN 2020","28628" = "JAN 2021","18993" = "DEC 2021")) +
+  facet_wrap(~ variable, scales = "free",
+             labeller = labeller(variable = who.labs) ) +
+  ggtitle("Pandemic indicators") +
+  # xlab("Time") +
+  theme_bw() +
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
+        strip.text.x = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5))
+  
+
+ggpubr::ggarrange(espic,whopic, nrow  = 2, common.legend = TRUE, legend = "bottom")
+ggsave(file="figures/covidexp2.jpg",width = 13,height = 8)
+
+norm_minmax <- function(x){
+  (x- min(x)) /(max(x)-min(x))
+}
+
+# df_eurostat <- df_eurostat %>% gather(variable,value, c(unemployment, debtgross,inflation),factor_key = TRUE)
+
+who <- who %>% gather(variable, value, c(New_cases,New_deaths), factor_key=TRUE)
+who <- who %>% select(names(df_eurostat))
+
+who <- who  %>% filter(datenum >= 18262 & datenum <= 18993) %>%
+  filter(country %in% c("Germany","Italy")) %>%
+  group_by(country, variable) %>% mutate(valuenorm = norm_minmax(value))
+
+
+who$df <- "who"
+
+
+df_eurostat <- df_eurostat %>% filter(datenum >= 18262 & datenum <= 18993) %>%
+  group_by(country,variable) %>% mutate(valuenorm = norm_minmax(value))
+df_eurostat$date <- as.character(df_eurostat$date)
+df_eurostat$df <- "eurostat"
+
+df <- rbind(who,df_eurostat)
+
+pandpic_it <- df %>% filter(country %in% c("Italy")) %>% 
+  filter(! variable == "debtgross") %>%
+  ggplot(aes(x = datenum, y  = valuenorm, color = variable)) +
+  scale_x_continuous(breaks = c(18262,18414,18628,18779,18993),
+                     labels = c("18262" = "JAN 20","18414" = "JUN 20","28628" = "JAN 21",
+                                "18779" = "JUN 21","18993" = "DEC 21")) +
+  scale_color_manual(values = c("New_cases" = "blue","New_deaths" = "red","inflation" = "purple",
+                                "unemployment" = "darkgreen"),
+                     labels = c("New_cases" = "New cases","New_deaths" = "New deaths","inflation" = "Inflation",
+                                "unemployment" = "Unemployment")) + 
+  geom_line() +
+  facet_wrap( ~ country,dir ="v" ) +
+  theme_bw() +
+  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.title.x = element_blank(),
+        strip.text.x = element_text(size = 12), legend.text = element_text(size = 12))
+
+pandpic_de <- df %>% filter(country %in% c("Germany")) %>% 
+  filter(! variable == "debtgross") %>%
+  ggplot(aes(x = datenum, y  = valuenorm, color = variable)) +
+  scale_x_continuous(breaks = c(18262,18414,18628,18779,18993),
+                     labels = c("18262" = "JAN 20","18414" = "JUN 20","28628" = "JAN 21","18779" = "JUN 21",
+                                "18993" = "DEC 21")) +
+  scale_color_manual(values = c("New_cases" = "blue","New_deaths" = "red","inflation" = "purple",
+                                "unemployment" = "darkgreen"),
+                     labels = c("New_cases" = "New cases","New_deaths" = "New deaths","inflation" = "Inflation",
+                                "unemployment" = "Unemployment")) + 
+  geom_line() +
+  facet_wrap( ~ country,dir ="v" ) +
+  theme_bw() +
+  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.title.x = element_blank(),
+        strip.text.x = element_text(size = 12), legend.text = element_text(size = 12))
+
+# ggsave(file="figures/test.jpg",width =8, height = 3)
+
+ggpubr::ggarrange(de_tm, it_tm, pandpic_de,pandpic_it)
+ggsave(file="figures/4_prevalence.jpg",width =13.5, height = 10)
+
+
+
+
+
