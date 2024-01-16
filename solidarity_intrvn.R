@@ -536,7 +536,39 @@ tweet_cvd <- gsub("_","",tweet_cvd)
 df_finlocast <- df_finlocast %>% filter(tweet_id %in% tweet_cvd)
 # !! in word_embedding script this subsample is saved as df_we for shortness
 
+# distribution top-actors (R&R)
 
+  df2 <- df_finlocast %>% group_by(user_username) %>%   mutate(count_name_occurr = n())
+  
+  dfcountry <- arrange(df2[df2$country == "Italy",],-count_name_occurr)
+ # dfcountry30 <- dfcountry[1:30,]
+  topact <- dfcountry[,c("user_username","count_name_occurr")] 
+  topact <- topact[!duplicated(dfcountry$user_username), ]
+  write.csv(topact,file = paste0(unique(dfcountry$country),"username.csv"), row.names=FALSE)
+  
+  topact[1:100,]  %>% filter(count_name_occurr > 5) %>% 
+    ggplot(aes(x = reorder(user_username,count_name_occurr), y = count_name_occurr)) + 
+    geom_col() +
+  scale_y_continuous(limits = c(0, max(topact[1:30,]$count_name_occurr)),
+                     breaks = seq(0, max(topact[1:30,]$count_name_occurr), 10)) +
+    coord_flip() +
+    ggtitle(topact[1:30,]$country) +
+    xlab("User") +
+    ylab("Count Tweets") +
+    theme_bw()
+ # ggsave(unique(paste0("topactors100",dfcountry$country,".jpg")), width = 10, height = 8)
+  
+  dfcountry %>% ggplot(aes(x=count_name_occurr)) + geom_density() +
+    scale_x_continuous(breaks = c(median(dfcountry$count_name_occurr),seq(0,max(dfcountry$count_name_occurr),10))) +
+    geom_vline(xintercept = median(dfcountry$count_name_occurr)) +
+    xlab("counts") +
+   # ggtitle(dfcountry$country) +
+    labs(title = dfcountry$country, subtitle =  "Intercept = median") + 
+    theme_bw()
+  ggsave(unique(paste0("density",dfcountry$country,".jpg")), width = 6, height = 5)
+  
+ 
+  
 # tokenization
 
 df_finlocast <- df_finlocast %>% unnest_tokens(word, text, token = stringr::str_split, pattern = " ")
