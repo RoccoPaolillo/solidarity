@@ -540,9 +540,9 @@ df_finlocast <- df_finlocast %>% filter(tweet_id %in% tweet_cvd)
 
   df2 <- df_finlocast %>% group_by(user_username) %>%   mutate(count_name_occurr = n())
   
-  dfcountry <- arrange(df2[df2$country == "Italy",],-count_name_occurr)
+  dfcountry <- arrange(df2[df2$country == "Germany",],-count_name_occurr)
  # dfcountry30 <- dfcountry[1:30,]
-  topact <- dfcountry[,c("user_username","count_name_occurr")] 
+  topact <- dfcountry[,c("user_username","count_name_occurr","user_description")] 
   topact <- topact[!duplicated(dfcountry$user_username), ]
   write.csv(topact,file = paste0(unique(dfcountry$country),"username.csv"), row.names=FALSE)
   
