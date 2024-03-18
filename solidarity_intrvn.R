@@ -30,6 +30,7 @@ library("gridExtra")
 library("ggrepel")  
 library("dplyr")
 library(readxl)
+library(ggrepel)
 
 "%nin%" <- Negate("%in%")
 
@@ -538,7 +539,7 @@ cmpdsubstitute <- read_xls("sample/compound.xls",sheet = "cmpd")[,2]
 cmpdsubstitute <- as.character(cmpdsubstitute$cmpd_change)
 names(cmpdsubstitute) <- cmpd
 df_finlocast$text <- str_replace_all(df_finlocast$text,cmpdsubstitute)
-df_finlocast$text <- gsub("#","",df_finlocast$text) ###  delete hashtag
+# df_finlocast$text <- gsub("#","",df_finlocast$text) ###  delete hashtag
 
 # for covid-only tweets ####
 load("sample/tweet_cvd.Rdata")
@@ -729,7 +730,7 @@ df_finlocast <- df_finlocast %>% filter(!word %in% stop_words$word,
 df_finlocast <- replace(df_finlocast, df_finlocast=='', NA)
 df_finlocast <- df_finlocast %>% drop_na(word)
 
-df_finlocast$word <- gsub("#","",df_finlocast$word)
+#df_finlocast$word <- gsub("#","",df_finlocast$word)
 #### Top frequencies https://www.tidytextmining.com/twitter.html ####
 
 
@@ -815,28 +816,28 @@ df_tf_idf %>%  arrange(desc(tf_idf))
 
 # df_tf_idf[df_tf_idf$word == "corona",]
 
-df_tf_idf %>%
-  group_by(country, monthyear) %>%
-slice_max(tf_idf, n = 1) %>%
-  group_by(catlev,tf_idf) %>%
-  mutate(labelling = paste0(word,collapse = ", ")) %>%
 # df_tf_idf %>%
 #   group_by(country, monthyear) %>%
-#   slice_max(tf_idf, n = 1) 
-  ungroup() %>%
-ggplot(aes(x = monthyear,y = tf_idf)) + 
-  geom_point(color = "white") +
-  geom_segment( aes(x=monthyear, xend=monthyear, y=0, yend=tf_idf,
-                    color = as.factor(quadrimester)), show.legend = FALSE) +
-  scale_color_manual(breaks = c(1,2,3,4), values = c("red","green","blue","purple")) + 
-  geom_text(aes(label = labelling)) +
-  xlab("Time (month-year") + 
-  ylab("tf-idf score") + 
-  coord_flip() +
-  scale_x_discrete(limits=rev) +
-  facet_wrap(~ country, dir = "v", scales = "free") +
-  theme_bw() 
-ggsave("figures/tf_idf.jpg", width = 10,  height = 9)
+# slice_max(tf_idf, n = 1) %>%
+#   group_by(catlev,tf_idf) %>%
+#   mutate(labelling = paste0(word,collapse = ", ")) %>%
+# # df_tf_idf %>%
+# #   group_by(country, monthyear) %>%
+# #   slice_max(tf_idf, n = 1) 
+#   ungroup() %>%
+# ggplot(aes(x = monthyear,y = tf_idf)) + 
+#   geom_point(color = "white") +
+#   geom_segment( aes(x=monthyear, xend=monthyear, y=0, yend=tf_idf,
+#                     color = as.factor(quadrimester)), show.legend = FALSE) +
+#   scale_color_manual(breaks = c(1,2,3,4), values = c("red","green","blue","purple")) + 
+#   geom_text(aes(label = labelling)) +
+#   xlab("Time (month-year") + 
+#   ylab("tf-idf score") + 
+#   coord_flip() +
+#   scale_x_discrete(limits=rev) +
+#   facet_wrap(~ country, dir = "v", scales = "free") +
+#   theme_bw() 
+# ggsave("figures/tf_idf.jpg", width = 10,  height = 9)
 
 #
 
@@ -929,56 +930,23 @@ df_finlocast %>%
  
  dfb <- df_finlocast %>% filter(country == "Italy")
  
-# report topic modelling #### 
- # sg <- labelTopics(stm_m,1:numm,15)
- # sg_prob <- tibble(topic = 1:numm,sg$prob) # marginal probability
- # sg_frex <- tibble(topic = 1:numm,sg$frex) # marginal frex
- # 
- # t2 <- findThoughts(stm_m, texts = dfb$text,n = 3, topics =2)
- # n <- 548
- # txx <-  print(c(paste0("ACTsj: ", dfb[n,]$user_username," TXT: ",dfb[n,]$text," DATE: ", dfb[n,]$created_at,
- #                        " TWID: ",dfb[n,]$tweet_id," CNID ",dfb[n,]$conversation_id)))
- # 
- 
- # thoughts <- list()
- # for (i in 1:numm){ # 
- #   # thg_det <- findThoughts(stm_m, texts = df_de$text,n = 3, topics =i)$docs[[1]]
- #   thought_text = list()
- #   dates <- findThoughts(stm_m, texts = dfb$text,n = 10, topics =i)$index[[1]] # 
- #   for (n in dates) {
- #     txx <-  print(c(paste0(" ACT: ", dfb[n,]$country,
- #                            " ACTsj: ", dfb[n,]$user_username," TXT: ",dfb[n,]$text," DATE: ", dfb[n,]$created_at,
- #                            " TWID: ",dfb[n,]$tweet_id," CNID ",dfb[n,]$conversation_id)))
- #     thought_text[[n]] <- txx
- #     thought_textfin <- do.call(rbind.data.frame, thought_text)
- #   }
- #   thoughts[[i]] <- thought_textfin
- #   
- # }
- # bind_rows(thoughts)
- # thoughts <- do.call(rbind.data.frame, lapply(thoughts,'[[',1))
- # colnames(thoughts) = c("1", "2","3","4","5","6","7","8","9","10") # columns where texts go
- # thoughts <- cbind(topic = 1:numm,thoughts)
- # 
- # report <- cbind(sg_prob,sg_frex,thoughts)
- # write.csv(report,file= "sample/6/6DE/reportde30.csv",row.names = F,  fileEncoding = "UTF-8")
 
 # covariates ####
  
- sg <- sageLabels(stm_it25cont,10)
+ sg <- sageLabels(stm_m,10)
  sg_prob <- tibble(topic = 1:numm,sg$marginal$prob) # marginal probability
  sg_frex <- tibble(topic = 1:numm,sg$marginal$frex) # marginal frex
  sg_prob_ass <- tibble(topic = 1:numm,sg$covnames[[1]],sg$cov.betas[[1]]$problabels) # ASSOCIATION prob
- sg_prob_cit <- tibble(topic = 1:numm,sg$covnames[[2]],sg$cov.betas[[2]]$problabels) # CITIZEN probl
- sg_prob_gov <- tibble(topic = 1:numm,sg$covnames[[3]],sg$cov.betas[[3]]$problabels) # GOVER prob
- sg_prob_mkt <- tibble(topic = 1:numm,sg$covnames[[4]],sg$cov.betas[[4]]$problabels) # MARKET probl
- sg_prob_med <- tibble(topic = 1:numm,sg$covnames[[5]],sg$cov.betas[[5]]$problabels) # MEDIA prob
+ sg_prob_gov <- tibble(topic = 1:numm,sg$covnames[[2]],sg$cov.betas[[2]]$problabels) # GOVERNANCE prob
+ sg_prob_mkt <- tibble(topic = 1:numm,sg$covnames[[3]],sg$cov.betas[[3]]$problabels) # MARKET prob
+ sg_prob_med <- tibble(topic = 1:numm,sg$covnames[[4]],sg$cov.betas[[4]]$problabels) # MEDIA prob
+ sg_prob_pac <- tibble(topic = 1:numm,sg$covnames[[5]],sg$cov.betas[[5]]$problabels) # PRIVATE ACCOUNT prob
  
  sg_frex_ass <- tibble(topic = 1:numm,sg$covnames[[1]],sg$cov.betas[[1]]$frexlabels) # ASSOCIATION frex
- sg_frex_cit <- tibble(topic = 1:numm,sg$covnames[[2]],sg$cov.betas[[2]]$frexlabels) # CITIZEN frex
- sg_frex_gov <- tibble(topic = 1:numm,sg$covnames[[3]],sg$cov.betas[[3]]$frexlabels) # GOVER frex
- sg_frex_mkt <- tibble(topic = 1:numm,sg$covnames[[4]],sg$cov.betas[[4]]$frexlabels) # MARKET frex
- sg_frex_med <- tibble(topic = 1:numm,sg$covnames[[5]],sg$cov.betas[[5]]$frexlabels) # MEDIA frex
+ sg_frex_gov <- tibble(topic = 1:numm,sg$covnames[[2]],sg$cov.betas[[2]]$frexlabels) # GOVERNANCE frex
+ sg_frex_mkt <- tibble(topic = 1:numm,sg$covnames[[3]],sg$cov.betas[[3]]$frexlabels) # MARKET frex
+ sg_frex_med <- tibble(topic = 1:numm,sg$covnames[[4]],sg$cov.betas[[4]]$frexlabels) # MEDIA frex
+ sg_frex_pac <- tibble(topic = 1:numm,sg$covnames[[5]],sg$cov.betas[[5]]$frexlabels) # PRIVATE ACCOUNT frex
  
  thoughts <- list()
  for (i in 1:numm){ # 
@@ -1001,8 +969,8 @@ df_finlocast %>%
  thoughts <- cbind(topic = 1:numm,thoughts)
  
  # combining final report pieces and write excel
- long_report <- cbind(sg_prob,sg_frex,sg_prob_ass,sg_prob_cit,sg_prob_gov,sg_prob_mkt,sg_prob_med,
-                      sg_frex_ass,sg_frex_cit,sg_frex_gov,sg_frex_mkt,sg_frex_med,thoughts)
+ long_report <- cbind(sg_prob,sg_frex,sg_prob_ass,sg_prob_pac,sg_prob_gov,sg_prob_mkt,sg_prob_med,
+                      sg_frex_ass,sg_frex_pac,sg_frex_gov,sg_frex_mkt,sg_frex_med,thoughts)
  
  label_it <- c("hospital donations", "charity", "economy", "international coop", "food donations",
                "digital solidarity", "local corporates", "health emergency", "europe", "local donations",
@@ -2369,6 +2337,23 @@ numm <- 25
 
 dfbIT <- df_finlocast %>% filter(country == "Italy")
 
+
+sgIT <- sageLabels(stm_it25cont,6)
+sg_probIT <- tibble(topic = 1:numm,sgIT$marginal$prob) # marginal probability
+sg_frexIT <- tibble(topic = 1:numm,sgIT$marginal$frex) # marginal frex
+sg_prob_assIT <- tibble(topic = 1:numm,sgIT$covnames[[1]],sgIT$cov.betas[[1]]$problabels) # ASSOCIATION prob
+sg_prob_govIT <- tibble(topic = 1:numm,sgIT$covnames[[2]],sgIT$cov.betas[[2]]$problabels) # GOVERNANCE prob
+sg_prob_mktIT <- tibble(topic = 1:numm,sgIT$covnames[[3]],sgIT$cov.betas[[3]]$problabels) # MARKET prob
+sg_prob_medIT <- tibble(topic = 1:numm,sgIT$covnames[[4]],sgIT$cov.betas[[4]]$problabels) # MEDIA prob
+sg_prob_pacIT <- tibble(topic = 1:numm,sgIT$covnames[[5]],sgIT$cov.betas[[5]]$problabels) # PRIVATE ACCOUNT prob
+
+sg_frex_assIT <- tibble(topic = 1:numm,sgIT$covnames[[1]],sgIT$cov.betas[[1]]$frexlabels) # ASSOCIATION frex
+sg_frex_govIT <- tibble(topic = 1:numm,sgIT$covnames[[2]],sgIT$cov.betas[[2]]$frexlabels) # GOVERNANCE frex
+sg_frex_mktIT <- tibble(topic = 1:numm,sgIT$covnames[[3]],sgIT$cov.betas[[3]]$frexlabels) # MARKET frex
+sg_frex_medIT <- tibble(topic = 1:numm,sgIT$covnames[[4]],sgIT$cov.betas[[4]]$frexlabels) # MEDIA frex
+sg_frex_pacIT <- tibble(topic = 1:numm,sgIT$covnames[[5]],sgIT$cov.betas[[5]]$frexlabels) # PRIVATE ACCOUNT frex
+
+
 td_gammaIT <- tidy(stm_it25cont, matrix = "gamma")
 ID_rowIT <- names(stm_dfIT$documents) # the name of documents gets lost, the row number is reported
 td_gammaIT <- cbind(td_gammaIT,ID_rowIT) # Here I map each document to its name via row, I checked with content, it works
@@ -2453,52 +2438,43 @@ mutate(label = recode(topic,
 
 gamma_terms_catIT$country <- "Italy"
 
+df_associationIT <- cbind( sg_frex_assIT[,1],sg_frex_assIT[,2],as.data.frame(do.call(rbind, sg_frex_assIT[,3])))
+df_associationIT$category <- df_associationIT[,2]
+df_associationIT <- df_associationIT[,-2]
+df_governanceIT <- cbind( sg_frex_govIT[,1],sg_frex_govIT[,2],as.data.frame(do.call(rbind, sg_frex_govIT[,3])))
+df_governanceIT$category <- df_governanceIT[,2]
+df_governanceIT <- df_governanceIT[,-2]
+df_marketIT <- cbind( sg_frex_mktIT[,1],sg_frex_mktIT[,2],as.data.frame(do.call(rbind, sg_frex_mktIT[,3])))
+df_marketIT$category <- df_marketIT[,2]
+df_marketIT <- df_marketIT[,-2]
+df_mediaIT <- cbind( sg_frex_medIT[,1],sg_frex_medIT[,2],as.data.frame(do.call(rbind, sg_frex_medIT[,3])))
+df_mediaIT$category <- df_mediaIT[,2]
+df_mediaIT <- df_mediaIT[,-2]
+df_pacIT <- cbind( sg_frex_pacIT[,1],sg_frex_pacIT[,2],as.data.frame(do.call(rbind, sg_frex_pacIT[,3])))
+df_pacIT$category <- df_pacIT[,2]
+df_pacIT <- df_pacIT[,-2]
 
-sg <- sageLabels(stm_it25cont,10)
-sg_prob <- tibble(topic = 1:numm,sg$marginal$prob) # marginal probability
-sg_frex <- tibble(topic = 1:numm,sg$marginal$frex) # marginal frex
-sg_prob_ass <- tibble(topic = 1:numm,sg$covnames[[1]],sg$cov.betas[[1]]$problabels) # ASSOCIATION prob
-sg_prob_cit <- tibble(topic = 1:numm,sg$covnames[[2]],sg$cov.betas[[2]]$problabels) # CITIZEN probl
-sg_prob_gov <- tibble(topic = 1:numm,sg$covnames[[3]],sg$cov.betas[[3]]$problabels) # GOVER prob
-sg_prob_mkt <- tibble(topic = 1:numm,sg$covnames[[4]],sg$cov.betas[[4]]$problabels) # MARKET probl
-sg_prob_med <- tibble(topic = 1:numm,sg$covnames[[5]],sg$cov.betas[[5]]$problabels) # MEDIA prob
+dfIT <- rbind(df_associationIT, df_governanceIT, df_marketIT, df_mediaIT,df_pacIT)
 
-sg_frex_ass <- tibble(topic = 1:numm,sg$covnames[[1]],sg$cov.betas[[1]]$frexlabels) # ASSOCIATION frex
-sg_frex_cit <- tibble(topic = 1:numm,sg$covnames[[2]],sg$cov.betas[[2]]$frexlabels) # CITIZEN frex
-sg_frex_gov <- tibble(topic = 1:numm,sg$covnames[[3]],sg$cov.betas[[3]]$frexlabels) # GOVER frex
-sg_frex_mkt <- tibble(topic = 1:numm,sg$covnames[[4]],sg$cov.betas[[4]]$frexlabels) # MARKET frex
-sg_frex_med <- tibble(topic = 1:numm,sg$covnames[[5]],sg$cov.betas[[5]]$frexlabels) # MEDIA frex
+dfITfin <- gather(dfIT,frexterms,termsfrex,V1:V6)%>%
+  filter(! termsfrex %in% c(cvd,"solidarity")) %>%
+  spread(frexterms,termsfrex)
 
+dfITfin$frexterms <- NA
 
-df_association <- cbind( sg_frex_ass[,1],sg_frex_ass[,2],as.data.frame(do.call(rbind, sg_frex_ass[,3])))
-df_citizens <- cbind( sg_frex_cit[,1],sg_frex_cit[,2],as.data.frame(do.call(rbind, sg_frex_cit[,3])))
+for (i in dfITfin$topic) {
 
+  for (a in dfITfin$category) {
+    dfITfin[dfITfin$topic == i & dfITfin$category == a,]$frexterms <- 
+      paste0(dfITfin[dfITfin$topic == i & dfITfin$category == a,c(3:8)],collapse= ", ")
+  }
 
-
-
-
-
-df$category <- df$`sg$covnames[[1]]`
-df <- df[,-2]
-
-df$frexa <- NA
-
-for (i in df$topic) {
-   
-  df[i,]$frexa <- paste0(df[i,c(3:12)],collapse= ", ")
-  
 }
 
+dfITfin$frexterms <- str_remove_all(dfITfin$frexterms,"\\bNA, \\b|\\b, NA\\b")
 
+gamma_terms_catIT <-  merge(gamma_terms_catIT,dfITfin,by = c("topic","category"))
 
-
-# df$frexa <- df$frexa %>% filter(!frexa %in% c(cvd,"solidarity"))
-# 
-# gamma_terms_catIT <- merge(gamma_terms_catIT,df[,c("topic","frexa","category")],by = c("topic","category"))
-
-
-
-  
 # Germany category ####
 load("review_1/sample_rv1/DE/stm_DE20.Rdata")
 load("review_1/sample_rv1/DE/dfm_desolcv.Rdata")
@@ -2578,30 +2554,73 @@ mutate(type = recode(topic,
 
 gamma_terms_catDE$country <- "Germany"
 
-gamma_terms_catTOT <- rbind(gamma_terms_catDE,gamma_terms_catIT)
+
+sgDE <- sageLabels(stm_DE20,6)
+sg_probDE <- tibble(topic = 1:numm,sgDE$marginal$prob) # marginal probability
+sg_frexDE <- tibble(topic = 1:numm,sgDE$marginal$frex) # marginal frex
+sg_prob_assDE <- tibble(topic = 1:numm,sgDE$covnames[[1]],sgDE$cov.betas[[1]]$problabels) # ASSOCIATION prob
+sg_prob_govDE <- tibble(topic = 1:numm,sgDE$covnames[[2]],sgDE$cov.betas[[2]]$problabels) # GOVERNANCE prob
+sg_prob_mktDE <- tibble(topic = 1:numm,sgDE$covnames[[3]],sgDE$cov.betas[[3]]$problabels) # MARKET prob
+sg_prob_medDE <- tibble(topic = 1:numm,sgDE$covnames[[4]],sgDE$cov.betas[[4]]$problabels) # MEDIA prob
+sg_prob_pacDE <- tibble(topic = 1:numm,sgDE$covnames[[5]],sgDE$cov.betas[[5]]$problabels) # PRIVATE ACCOUNT prob
+
+sg_frex_assDE <- tibble(topic = 1:numm,sgDE$covnames[[1]],sgDE$cov.betas[[1]]$frexlabels) # ASSOCIATION frex
+sg_frex_govDE <- tibble(topic = 1:numm,sgDE$covnames[[2]],sgDE$cov.betas[[2]]$frexlabels) # GOVERNANCE frex
+sg_frex_mktDE <- tibble(topic = 1:numm,sgDE$covnames[[3]],sgDE$cov.betas[[3]]$frexlabels) # MARKET frex
+sg_frex_medDE <- tibble(topic = 1:numm,sgDE$covnames[[4]],sgDE$cov.betas[[4]]$frexlabels) # MEDIA frex
+sg_frex_pacDE <- tibble(topic = 1:numm,sgDE$covnames[[5]],sgDE$cov.betas[[5]]$frexlabels) # PRIVATE ACCOUNT frex
+
+df_associationDE <- cbind( sg_frex_assDE[,1],sg_frex_assDE[,2],as.data.frame(do.call(rbind, sg_frex_assDE[,3])))
+df_associationDE$category <- df_associationDE[,2]
+df_associationDE <- df_associationDE[,-2]
+df_governanceDE <- cbind( sg_frex_govDE[,1],sg_frex_govDE[,2],as.data.frame(do.call(rbind, sg_frex_govDE[,3])))
+df_governanceDE$category <- df_governanceDE[,2]
+df_governanceDE <- df_governanceDE[,-2]
+df_marketDE <- cbind( sg_frex_mktDE[,1],sg_frex_mktDE[,2],as.data.frame(do.call(rbind, sg_frex_mktDE[,3])))
+df_marketDE$category <- df_marketDE[,2]
+df_marketDE <- df_marketDE[,-2]
+df_mediaDE <- cbind( sg_frex_medDE[,1],sg_frex_medDE[,2],as.data.frame(do.call(rbind, sg_frex_medDE[,3])))
+df_mediaDE$category <- df_mediaDE[,2]
+df_mediaDE <- df_mediaDE[,-2]
+df_pacDE <- cbind( sg_frex_pacDE[,1],sg_frex_pacDE[,2],as.data.frame(do.call(rbind, sg_frex_pacDE[,3])))
+df_pacDE$category <- df_pacDE[,2]
+df_pacDE <- df_pacDE[,-2]
+
+dfDE <- rbind(df_associationDE, df_governanceDE, df_marketDE, df_mediaDE,df_pacDE)
+
+dfDEfin <- gather(dfDE,frexterms,termsfrex,V1:V6) %>%
+  filter(! termsfrex %in% c(cvd,"solidarity")) %>%
+  spread(frexterms,termsfrex)
+
+dfDEfin$frexterms <- NA
+
+for (i in dfDEfin$topic) {
+  
+  for (a in dfDEfin$category) {
+    dfDEfin[dfDEfin$topic == i & dfDEfin$category == a,]$frexterms <- 
+      paste0(dfDEfin[dfDEfin$topic == i & dfDEfin$category == a,c(3:8)],collapse= ", ")
+  }
+  
+}
+
+dfDEfin$frexterms <- str_remove_all(dfDEfin$frexterms,"\\bNA, \\b|\\b, NA\\b")
+
+gamma_terms_catDE <-  merge(gamma_terms_catDE,dfDEfin,by = c("topic","category"))
+
+gamma_terms_catTOT <- rbind(gamma_terms_catDE,gamma_terms_catIT) 
 save(gamma_terms_catTOT,file="review_1/sample_rv1/gamma_terms_catTOT.Rdata")
 
 # plots combined
-
-
-for (i in unique(gamma_terms_cat$category)) {
-
-  capitalize <- function(string) {
-    substr(string, 1, 1) <- toupper(substr(string, 1, 1))
-    string
-  }  
-  
-tprop <- gamma_terms_catTOT %>%
+    
+gamma_terms_catTOT %>%
 group_by(country,category) %>%
-  
-  gamma_terms_catIT %>%
   top_n(4, gamma) %>%
   ungroup %>%
 #  mutate(label = reorder_within(label, gamma, category)) %>%
   ggplot(aes(reorder_within(label, gamma, category), gamma, fill = type)) +
  # geom_col() +
   geom_bar(stat = 'identity') +
-  geom_text(aes(label = frexa),hjust = 0, y = 0.001, size = 4, # nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = frexterms),hjust = 0, y = 0.001, size = 4, # nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_x_reordered() +
@@ -2613,16 +2632,10 @@ group_by(country,category) %>%
     "targets" = "khaki",
     "transnational" = "palegreen"
   ),
-  name = "Solidarity categories") 
-
-
-
-+
-  facet_wrap(~ category + country, ncol = 2, scale="free", labeller = labeller(category = capitalize)) + 
+  name = "Solidarity categories") +
+  facet_wrap(~ category + country, ncol = 2, scale="free") + 
   scale_y_continuous(label = scales::percent) +
-  theme_bw() 
-
-+
+  theme_bw() +
   theme(
     axis.title.y = element_blank(),
     axis.title.x = element_blank(),
@@ -2632,7 +2645,9 @@ group_by(country,category) %>%
     legend.text = element_text(size=11),
     legend.title = element_text(size=12),
         legend.position = "bottom"  )  + guides(fill=guide_legend(nrow=1))
-ggsave(file = paste0("review_1/sample_rv1/categoriestopic.jpg"),width = 12,height = 11)
+ggsave(file = paste0("review_1/sample_rv1/categoriestopic.jpg"),width = 13.5,height = 12)
+
+
 
   df <- gamma_terms_cat[gamma_terms_cat$category == i,] %>% 
     group_by(category) %>% top_n(5,gamma) 
