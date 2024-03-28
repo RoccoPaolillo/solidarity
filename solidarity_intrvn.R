@@ -365,101 +365,101 @@ setwd("C:/Users/rocpa/OneDrive/Desktop/CNT/solidarity_server/")
 # write.csv(quadrigrams_united,"sample/quadrigrams_and_hifen.csv",row.names= F)
 
 
-# Empirical datasets ####
-
-# Eurostat inflation
-
-umpl <- read.csv("sample/unemployment1923.csv",sep=";")
-names(umpl[,2:52]) <- as.numeric(names(umpl[,2:52]))
-names(umpl) <- gsub("X","",names(umpl))
-names(umpl) <- gsub("\\b.\\b" ,"-",names(umpl))
-
-umpl <- gather(umpl, date, unemployment, c(2:52), factor_key=TRUE)
-umpl$unemployment <- as.numeric(umpl$unemployment)
-umpl[is.na(umpl)] <- 0
-
-umpl$date <- paste0(umpl$date,"-01")
-umpl$date <- as_date(umpl$date)
-umpl$datenum <- as.integer(umpl$date)
-
-infl <- read.csv("sample/inflation1923.csv",sep=";")
-names(infl[,2:48]) <- as.numeric(names(infl[,2:48]))
-names(infl) <- gsub("X","",names(infl))
-names(infl) <- gsub("\\b.\\b" ,"-",names(infl))
-
-
-
-infl <- gather(infl, date, inflation, c(2:48), factor_key=TRUE)
-infl$inflation <- gsub("\\b,\\b",".",infl$inflation)
-infl$inflation <- as.numeric(infl$inflation)
-infl[is.na(infl)] <- 0
-
-infl$date <- paste0(infl$date,"-01")
-infl$date <- as_date(infl$date)
-infl$datenum <- as.integer(infl$date)
-
-debt <- read.csv("sample/gross_debt1923.csv",sep=";")
-names(debt[,2:24]) <- as.numeric(names(debt[,2:24]))
-names(debt) <- gsub("X","",names(debt))
-names(debt) <- gsub("\\b.\\b" ,"-",names(debt))
-
-debt <- gather(debt, date, debtgross, c(2:24), factor_key=TRUE)
-debt$debtgross <- gsub("\\b,\\b",".",debt$debtgross)
-debt$debtgross <- as.numeric(debt$debtgross)
-debt[is.na(debt)] <- 0
-
-debt$date <- paste0(debt$date,"-01-01")
-debt$date <- as_date(debt$date)
-debt$datenum <- as.integer(debt$date)
-
-debt[debt$country == "Germany (until 1990 former territory of the FRG)",]$country <- "Germany"
-
-debt <- gather(debt,variable,value,3, factor_key=TRUE)
-infl <- gather(infl,variable,value,3, factor_key=TRUE)
-umpl <- gather(umpl,variable,value,3, factor_key=TRUE)
-
-df_eurostat <- rbind(debt,infl,umpl)
-
-
-# df_eurostat[df$GEO == "Germany" & df_eurostat$date == "2021-03",]$inflation <- 2.0
-# df_eurostat[df$GEO == "Germany" & df_eurostat$date == "2021-11",]$inflation <- 6.0
-# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2020-09",]$inflation <- -1.0
-# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-02",]$inflation <- 1.0
-# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-04",]$inflation <- 1.0
-# df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-07",]$inflation <- 1.0
-# df_eurostat <- df_eurostat %>% rename(country = GEO)
-names(df_eurostat)[names(df_eurostat) == "country"] <- "GEO"
-df_eurostat$date <- paste0(df_eurostat$date,"-01")
-df_eurostat$date <- as_date(df_eurostat$date)
-df_eurostat$datenum <- as.integer(df_eurostat$date)
-
-
-save(df_eurostat,file="sample/df_eurostat.Rdata")
-rm(df_eurostat)
-load("sample/df_eurostat.Rdata")
-
-who <- read.csv("WHO.csv",sep=";")
-who <- who %>% rename(
-  country = Country,
-  date = Date_reported
-)
-
-who <- who %>% filter(country %in% c("Italy","Germany"))
-who$date <- gsub("/","-",who$date)
-who$datenum <- as_date(who$date,format = "%d-%m-%y")
-who$datenum <- as.integer(who$datenum)
-who <- who %>% filter(datenum <= 18992)
-save(who,file="sample/whodf.Rdata")
-
-df <- who %>% filter(Country == "Italy")
-df$normcase <- norm_minmax(df$New_cases)
-dfde <- who %>% filter(Country == "Germany")
-dfde$normcase <- norm_minmax(dfde$New_cases)
-
-whodf <- rbind(df,dfde)
-
-
-save(whodf,file="sample/whodf.Rdata")
+# # Empirical datasets ####
+# 
+# # Eurostat inflation
+# 
+# umpl <- read.csv("sample/unemployment1923.csv",sep=";")
+# names(umpl[,2:52]) <- as.numeric(names(umpl[,2:52]))
+# names(umpl) <- gsub("X","",names(umpl))
+# names(umpl) <- gsub("\\b.\\b" ,"-",names(umpl))
+# 
+# umpl <- gather(umpl, date, unemployment, c(2:52), factor_key=TRUE)
+# umpl$unemployment <- as.numeric(umpl$unemployment)
+# umpl[is.na(umpl)] <- 0
+# 
+# umpl$date <- paste0(umpl$date,"-01")
+# umpl$date <- as_date(umpl$date)
+# umpl$datenum <- as.integer(umpl$date)
+# 
+# infl <- read.csv("sample/inflation1923.csv",sep=";")
+# names(infl[,2:48]) <- as.numeric(names(infl[,2:48]))
+# names(infl) <- gsub("X","",names(infl))
+# names(infl) <- gsub("\\b.\\b" ,"-",names(infl))
+# 
+# 
+# 
+# infl <- gather(infl, date, inflation, c(2:48), factor_key=TRUE)
+# infl$inflation <- gsub("\\b,\\b",".",infl$inflation)
+# infl$inflation <- as.numeric(infl$inflation)
+# infl[is.na(infl)] <- 0
+# 
+# infl$date <- paste0(infl$date,"-01")
+# infl$date <- as_date(infl$date)
+# infl$datenum <- as.integer(infl$date)
+# 
+# debt <- read.csv("sample/gross_debt1923.csv",sep=";")
+# names(debt[,2:24]) <- as.numeric(names(debt[,2:24]))
+# names(debt) <- gsub("X","",names(debt))
+# names(debt) <- gsub("\\b.\\b" ,"-",names(debt))
+# 
+# debt <- gather(debt, date, debtgross, c(2:24), factor_key=TRUE)
+# debt$debtgross <- gsub("\\b,\\b",".",debt$debtgross)
+# debt$debtgross <- as.numeric(debt$debtgross)
+# debt[is.na(debt)] <- 0
+# 
+# debt$date <- paste0(debt$date,"-01-01")
+# debt$date <- as_date(debt$date)
+# debt$datenum <- as.integer(debt$date)
+# 
+# debt[debt$country == "Germany (until 1990 former territory of the FRG)",]$country <- "Germany"
+# 
+# debt <- gather(debt,variable,value,3, factor_key=TRUE)
+# infl <- gather(infl,variable,value,3, factor_key=TRUE)
+# umpl <- gather(umpl,variable,value,3, factor_key=TRUE)
+# 
+# df_eurostat <- rbind(debt,infl,umpl)
+# 
+# 
+# # df_eurostat[df$GEO == "Germany" & df_eurostat$date == "2021-03",]$inflation <- 2.0
+# # df_eurostat[df$GEO == "Germany" & df_eurostat$date == "2021-11",]$inflation <- 6.0
+# # df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2020-09",]$inflation <- -1.0
+# # df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-02",]$inflation <- 1.0
+# # df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-04",]$inflation <- 1.0
+# # df_eurostat[df$GEO == "Italy" & df_eurostat$date == "2021-07",]$inflation <- 1.0
+# # df_eurostat <- df_eurostat %>% rename(country = GEO)
+# names(df_eurostat)[names(df_eurostat) == "country"] <- "GEO"
+# df_eurostat$date <- paste0(df_eurostat$date,"-01")
+# df_eurostat$date <- as_date(df_eurostat$date)
+# df_eurostat$datenum <- as.integer(df_eurostat$date)
+# 
+# 
+# save(df_eurostat,file="sample/df_eurostat.Rdata")
+# rm(df_eurostat)
+# load("sample/df_eurostat.Rdata")
+# 
+# who <- read.csv("WHO.csv",sep=";")
+# who <- who %>% rename(
+#   country = Country,
+#   date = Date_reported
+# )
+# 
+# who <- who %>% filter(country %in% c("Italy","Germany"))
+# who$date <- gsub("/","-",who$date)
+# who$datenum <- as_date(who$date,format = "%d-%m-%y")
+# who$datenum <- as.integer(who$datenum)
+# who <- who %>% filter(datenum <= 18992)
+# save(who,file="sample/whodf.Rdata")
+# 
+# df <- who %>% filter(Country == "Italy")
+# df$normcase <- norm_minmax(df$New_cases)
+# dfde <- who %>% filter(Country == "Germany")
+# dfde$normcase <- norm_minmax(dfde$New_cases)
+# 
+# whodf <- rbind(df,dfde)
+# 
+# 
+# save(whodf,file="sample/whodf.Rdata")
 
 
 
@@ -547,7 +547,7 @@ cmpdsubstitute <- read_xls("sample/compound.xls",sheet = "cmpd")[,2]
 cmpdsubstitute <- as.character(cmpdsubstitute$cmpd_change)
 names(cmpdsubstitute) <- cmpd
 df_finlocast$text <- str_replace_all(df_finlocast$text,cmpdsubstitute)
-# df_finlocast$text <- gsub("#","",df_finlocast$text) ###  delete hashtag
+df_finlocast$text <- gsub("#","",df_finlocast$text) ###  delete hashtag
 
 # for covid-only tweets ####
 load("sample/tweet_cvd.Rdata")
@@ -556,35 +556,35 @@ df_finlocast <- df_finlocast %>% filter(tweet_id %in% tweet_cvd)
 # !! in word_embedding script this subsample is saved as df_we for shortness
 
 # distribution top-actors (R&R) ####
-
-  df2 <- df_finlocast %>% group_by(user_username) %>%   mutate(count_name_occurr = n())
-  
-  dfcountry <- arrange(df2[df2$country == "Germany",],-count_name_occurr)
- # dfcountry30 <- dfcountry[1:30,]
-  topact <- dfcountry[,c("user_username","count_name_occurr","user_description")] 
-  topact <- topact[!duplicated(dfcountry$user_username), ]
-  write.csv(topact,file = paste0(unique(dfcountry$country),"username.csv"), row.names=FALSE)
-  
-  topact[1:100,]  %>% filter(count_name_occurr > 5) %>% 
-    ggplot(aes(x = reorder(user_username,count_name_occurr), y = count_name_occurr)) + 
-    geom_col() +
-  scale_y_continuous(limits = c(0, max(topact[1:30,]$count_name_occurr)),
-                     breaks = seq(0, max(topact[1:30,]$count_name_occurr), 10)) +
-    coord_flip() +
-    ggtitle(topact[1:30,]$country) +
-    xlab("User") +
-    ylab("Count Tweets") +
-    theme_bw()
- # ggsave(unique(paste0("topactors100",dfcountry$country,".jpg")), width = 10, height = 8)
-  
-  dfcountry %>% ggplot(aes(x=count_name_occurr)) + geom_density() +
-    scale_x_continuous(breaks = c(median(dfcountry$count_name_occurr),seq(0,max(dfcountry$count_name_occurr),10))) +
-    geom_vline(xintercept = median(dfcountry$count_name_occurr)) +
-    xlab("counts") +
-   # ggtitle(dfcountry$country) +
-    labs(title = dfcountry$country, subtitle =  "Intercept = median") + 
-    theme_bw()
-  ggsave(unique(paste0("density",dfcountry$country,".jpg")), width = 6, height = 5)
+# 
+#   df2 <- df_finlocast %>% group_by(user_username) %>%   mutate(count_name_occurr = n())
+#   
+#   dfcountry <- arrange(df2[df2$country == "Germany",],-count_name_occurr)
+#  # dfcountry30 <- dfcountry[1:30,]
+#   topact <- dfcountry[,c("user_username","count_name_occurr","user_description")] 
+#   topact <- topact[!duplicated(dfcountry$user_username), ]
+#   write.csv(topact,file = paste0(unique(dfcountry$country),"username.csv"), row.names=FALSE)
+#   
+#   topact[1:100,]  %>% filter(count_name_occurr > 5) %>% 
+#     ggplot(aes(x = reorder(user_username,count_name_occurr), y = count_name_occurr)) + 
+#     geom_col() +
+#   scale_y_continuous(limits = c(0, max(topact[1:30,]$count_name_occurr)),
+#                      breaks = seq(0, max(topact[1:30,]$count_name_occurr), 10)) +
+#     coord_flip() +
+#     ggtitle(topact[1:30,]$country) +
+#     xlab("User") +
+#     ylab("Count Tweets") +
+#     theme_bw()
+#  # ggsave(unique(paste0("topactors100",dfcountry$country,".jpg")), width = 10, height = 8)
+#   
+#   dfcountry %>% ggplot(aes(x=count_name_occurr)) + geom_density() +
+#     scale_x_continuous(breaks = c(median(dfcountry$count_name_occurr),seq(0,max(dfcountry$count_name_occurr),10))) +
+#     geom_vline(xintercept = median(dfcountry$count_name_occurr)) +
+#     xlab("counts") +
+#    # ggtitle(dfcountry$country) +
+#     labs(title = dfcountry$country, subtitle =  "Intercept = median") + 
+#     theme_bw()
+#   ggsave(unique(paste0("density",dfcountry$country,".jpg")), width = 6, height = 5)
 
 # Users classification
   
@@ -756,7 +756,7 @@ dftop %>%
   ggplot(aes(description_4,
                     y = sum_tot,fill = description_4, label = sum_tot)) + 
   geom_col() +
-    facet_wrap(~ country, scales = "free") +
+    facet_wrap(~ country, scales = "free", dir = "v") +
     scale_y_continuous( labels = function(x) sprintf("%0.0f", x)) +
     coord_flip() +
     geom_text() +
@@ -764,8 +764,13 @@ dftop %>%
   xlab("Users' categories") +
   labs(fill = "Users Categories") +
   theme_bw() +
-  theme(legend.position = "none")
-  ggsave("review_1/sample_rv1/macrocat_descr4.jpg", width = 11, height = 5)
+  theme(legend.position = "none",
+        axis.text.y = element_text(size = 12),
+        strip.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12)
+        )
+  ggsave("macrocat_descr.jpg", width = 8, height = 8)
 
 # merge annotation to dataframe ####
 
@@ -956,13 +961,13 @@ df_finlocast %>%
  # cvd <- gsub("#","",cvd)
  # rem_char <- c("http*","@*","€","+","|","s","faq","=","_","__","~","___")
 # load("sample/6/df_we6.Rdata")
- load("review_1/sample_rv1/IT/stm_it25.Rdata")
- load("review_1/sample_rv1/IT/dfm_itsolcv.Rdata")
- stm_m <- stm_it25
- stm_df <- quanteda::convert(dfm_itsolcv,to = "stm")  
- numm <- 25
+ load("review_1/sample_rv1/DE/stm_de20.Rdata")
+ load("review_1/sample_rv1/DE/dfm_desolcv.Rdata")
+ stm_m <- stm_de20
+ stm_df <- quanteda::convert(dfm_desolcv,to = "stm")  
+ numm <- 20
  
- dfb <- df_finlocast %>% filter(country == "Italy")
+ dfb <- df_finlocast %>% filter(country == "Germany")
  
 
 # covariates ####
@@ -1006,24 +1011,24 @@ df_finlocast %>%
  long_report <- cbind(sg_prob,sg_frex,sg_prob_ass,sg_prob_pac,sg_prob_gov,sg_prob_mkt,sg_prob_med,
                       sg_frex_ass,sg_frex_pac,sg_frex_gov,sg_frex_mkt,sg_frex_med,thoughts)
 
- label_it <- c("hospital donations", "charity", "economy", "international coop", "food donations",
+ label_it <- c("hospital donations", "charity", "economy", "covid outbreak", "food donations",
                "digital solidarity", "local corporates", "health emergency", "europe", "local donations",
                "bergamo", "welfare", "community donations", "services municipalities", "culture",
                "corporate responsibility", "emergency donations", "fundraising", "municipalities initiatives",
                "lockdown", "vaccination", "governance", "families", "artisans", "volunteering")
 
  label_de <- c("doctors international","housing","social responsibility","stayhome","refugees","masks",
-               "cohesion","governance media","europe","mobilitations","international coop","vaccination",
+               "cohesion","governance media","europe","mobilizations","international coop","vaccination",
                "freedom","flattencurve","social exclusion","charity","local initiatives","access vaccination",
                "fight together","health crisis")
 
 
- long_report$label <- label_it
+ long_report$label <- label_de
 
  long_report <- long_report %>% relocate(label, .after=1)
 
 
- write.csv(long_report,file= "review_1/sample_rv1/IT/Italy25_cont.csv",row.names = F, col.names=T,  sep=";",  fileEncoding = "UTF-8")
+ write.csv(long_report,file= "review_1/sample_rv1/DE/Germany20_cont.csv",row.names = F, col.names=T,  sep=";",  fileEncoding = "UTF-8")
 
 
  textfreq <- textstat_frequency(dfm_itsolcv)
@@ -1137,7 +1142,7 @@ gamma_terms_de <- td_gamma %>%
                       #  "8" = "Governance",
                         "8" = "Governance\nmedia",
                         "9" = "Europe",
-                        "10" = "Mobilitations",
+                        "10" = "Mobilizations",
                         "11" = "International\ncoop",
                         "12" = "Vaccination",
                         "13" = "Freedom",
@@ -1187,7 +1192,7 @@ detop <- gamma_tot %>%
 filter(country == "Germany") %>%
   ggplot(aes(reorder(label,gamma), gamma, fill = type)) +
   geom_col() +
-  geom_text(aes(label = terms),hjust = 0, y = 0.001, size = 5, # nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = terms),hjust = 0, y = 0.001, size = 4.8, # nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_fill_manual(values= c(
@@ -1204,11 +1209,13 @@ filter(country == "Germany") %>%
   theme_bw() +
   theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
         axis.text.x = element_text(size = 10),
-        strip.text.x = element_text(size = 20), 
+        strip.text.x = element_text(size = 18), 
         axis.text.y = element_text(size = 12),
         legend.position = "bottom",
         legend.text = element_text(size=13),
-        legend.title = element_text(size=14)
+        legend.title = element_text(size=14),
+        plot.margin = unit(c(0.4, 0.4, 0.4, 0.4), 
+                           "inches")
         ) +
   guides(fill=guide_legend(nrow=1))
 
@@ -1216,7 +1223,7 @@ ittop <- gamma_tot %>%
   filter(country == "Italy") %>%
   ggplot(aes(reorder(label,gamma), gamma, fill = type)) +
   geom_col() +
-  geom_text(aes(label = terms),hjust = 0, y = 0.001, size = 5, # nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = terms),hjust = 0, y = 0.001, size = 4.8, # nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_fill_manual(values= c(
@@ -1233,16 +1240,19 @@ ittop <- gamma_tot %>%
   theme_bw() +
   theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
         axis.text.x = element_text(size = 10),
-        strip.text.x = element_text(size = 20), 
+        strip.text.x = element_text(size = 18), 
         axis.text.y = element_text(size = 12),
         legend.position = "bottom",
         legend.text = element_text(size=13),
-        legend.title = element_text(size=14)
+        legend.title = element_text(size=14),
+        plot.margin = unit(c(0.4, 0.4, 0.4, 0.4), 
+                           "inches")
   ) +
   guides(fill=guide_legend(nrow=1))
 
-ggpubr::ggarrange(detop,ittop,  common.legend = TRUE, legend="bottom")
-ggsave("review_1/sample_rv1/3_topic_proportion.png",height = 10,width = 19)
+ggpubr::ggarrange(detop,ittop,  common.legend = TRUE, legend="bottom", nrow=2)
+ggsave("3_topic_proportion.png",height = 17,width = 15)
+# ggsave("review_1/sample_rv1/3_topic_proportion.png",height = 10,width = 19)
 
  # time topic modelling ####
  
@@ -1276,7 +1286,7 @@ effects_intDE <- effects_intDE %>% mutate(label = recode(topic,
                                                              #  "8" = "Governance",
                                                              "8" = "Governance\nmedia",
                                                              "9" = "Europe",
-                                                             "10" = "Mobilitations",
+                                                             "10" = "Mobilizations",
                                                              "11" = "International\ncoop",
                                                              "12" = "Vaccination",
                                                              "13" = "Freedom",
@@ -1412,7 +1422,7 @@ de_tm <- effects_intDE %>% mutate(country = "Germany")  %>%  filter(topic %in% c
   scale_y_continuous(labels = scales::percent_format() ) +
   scale_color_manual(values = c("5" = "limegreen","12" = "purple", "13" = "orange","10" = "black",
                                 "16" = "red","17" = "blue", "19" = "brown"),
-                       labels = c("5" = "Refugees","12" = "Vaccination", "13" = "Freedom","10" = "Mobilitations",
+                       labels = c("5" = "Refugees","12" = "Vaccination", "13" = "Freedom","10" = "Mobilizations",
                                   "16" = "Charity","17" = "Local Initiatives", "19" = "Fight together"),
                      name = "Topics" ) +
   facet_wrap(~ country) + 
@@ -1979,7 +1989,7 @@ effects_intDE <- effects_intDE %>% mutate(country = "Germany")  %>%
                         #  "8" = "Governance",
                         "8" = "Governance\nmedia",
                         "9" = "Europe",
-                        "10" = "Mobilitations",
+                        "10" = "Mobilizations",
                         "11" = "International\ncoop",
                         "12" = "Vaccination",
                         "13" = "Freedom",
@@ -2287,7 +2297,7 @@ mutate(label = recode(topic,
                       #  "8" = "Governance",
                       "8" = "Governance\nmedia",
                       "9" = "Europe",
-                      "10" = "Mobilitations",
+                      "10" = "Mobilizations",
                       "11" = "International\ncoop",
                       "12" = "Vaccination",
                       "13" = "Freedom",
@@ -2391,7 +2401,7 @@ dfDEglob <- merge(dfDEglobprob,dfDEglobfrex,by = "topic") %>%
                         #  "8" = "Governance",
                         "8" = "Governance\nmedia",
                         "9" = "Europe",
-                        "10" = "Mobilitations",
+                        "10" = "Mobilizations",
                         "11" = "International\ncoop",
                         "12" = "Vaccination",
                         "13" = "Freedom",
