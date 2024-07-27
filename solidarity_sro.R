@@ -929,8 +929,12 @@ df_finlocast %>%
   coord_flip() +
   ylab("log odds ratio (Germany/Italy)") +
   scale_fill_discrete(name = "", labels = c("Germany", "Italy")) +
-  theme_bw() 
- ggsave(file="review_1/sample_rv1/fkeyness_cvdRN.jpg",width = 10, height = 9)
+  theme_bw() + 
+  theme(axis.text.y = element_text(size = 14),
+        axis.title.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15),
+        legend.text = element_text(size = 13))
+ ggsave(file="review2/review_2/submissionR2/figures/3_keyness.jpg",width = 11, height = 10)
 
 
 # dfm ####
@@ -1318,7 +1322,7 @@ effects_intDE <- effects_intDE %>% mutate(label = recode(topic,
                                                              "20" = "Health crisis")) 
 
 
-prep <- estimateEffect(1:numm ~ s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
+prep <- estimateEffect(1:25 ~ s(datenum), stm_it25, metadata = stm_dfIT$meta, uncertainty = "Global")
 
 
 effects_intIT <- get_effects(estimates = prep,
@@ -1328,7 +1332,7 @@ effects_intIT <- get_effects(estimates = prep,
 load("sample/6/6DE/de6_effects_int.Rdata")
 load("sample/6/6IT/it6_effects_int.Rdata")
 
-tidystm <- tidy(stm_m)
+tidystm <- tidy(stm_it25)
 
 effects_intIT <- effects_intIT %>% mutate(label = recode(topic,
                                                              "1" = "Hospital\ndonations",
@@ -1430,8 +1434,8 @@ it_tm <- effects_intIT %>% mutate(country = "Italy")  %>%  filter(topic %in% c(2
   xlab("Time") +
   theme_bw() +
   theme(axis.title.x = element_blank(), legend.position = "bottom",
-        strip.text.x = element_text(size = 12), legend.text = element_text(size=12),
-        legend.title =  element_text(size=12))
+        strip.text.x = element_text(size = 16), legend.text = element_text(size=13),
+        legend.title =  element_text(size=15))
 
 de_tm <- effects_intDE %>% mutate(country = "Germany")  %>%  filter(topic %in% c(5,12,13,10,16,17,19)) %>%
   ggplot(aes(x = value, y = proportion, color = as.factor(topic))) + geom_line() + 
@@ -1451,8 +1455,8 @@ de_tm <- effects_intDE %>% mutate(country = "Germany")  %>%  filter(topic %in% c
   xlab("Time") +
   theme_bw() +
   theme(axis.title.x = element_blank(), legend.position = "bottom",
-        strip.text.x = element_text(size = 12),
-        legend.text = element_text(size=12), legend.title =  element_text(size=12))
+        strip.text.x = element_text(size = 16), legend.text = element_text(size=13),
+        legend.title =  element_text(size=15))
 
 
 prev <- grid.arrange(de_tm,it_tm)
@@ -1753,8 +1757,14 @@ espic <- df_eurostat %>% filter(country %in% c("EU","Italy","Germany") & datenum
  # xlab("Time") +
   theme_bw() + 
   theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
-        strip.text.x = element_text(size = 12),
-        plot.title = element_text(hjust = 0.5))
+        strip.text.x = element_text(size = 16),
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        plot.title = element_text(hjust = 0.5, size = 18),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 15),
+        plot.margin = unit(c(0.2, 0.3, 0.2, 0.2), 
+                           "inches"))
 
 who <- who %>% gather(variable, value, c(New_cases,New_deaths), factor_key=TRUE)
 
@@ -1773,12 +1783,18 @@ whopic <- who %>% ggplot(aes(x = datenum, y = value, color = country)) +
   # xlab("Time") +
   theme_bw() +
   theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
-        strip.text.x = element_text(size = 12),
-        plot.title = element_text(hjust = 0.5))
+        strip.text.x = element_text(size = 16),
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        plot.title = element_text(hjust = 0.5, size = 18),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 15),
+        plot.margin = unit(c(0.2, 0.2, 0.2, 0.2), 
+                           "inches"))
   
 
 ggpubr::ggarrange(espic,whopic, nrow  = 2, common.legend = TRUE, legend = "bottom")
-ggsave(file="review_1/sample_rv1/covidexp.jpg",width = 13,height = 8)
+ggsave(file="review2/review_2/submissionR2/figures/covidexp.jpg",width = 13,height = 8)
 
 norm_minmax <- function(x){
   (x- min(x)) /(max(x)-min(x))
@@ -1817,8 +1833,18 @@ pandpic_it <- df %>% filter(country %in% c("Italy")) %>%
   geom_line() +
   facet_wrap( ~ country,dir ="v" ) +
   theme_bw() +
-  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.title.x = element_blank(),
-        strip.text.x = element_text(size = 12), legend.text = element_text(size = 12))
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
+        strip.text.x = element_text(size = 16),
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        plot.title = element_text(hjust = 0.5, size = 18),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 15),
+        plot.margin = unit(c(0.2, 0.2, 0.2, 0.2), 
+                           "inches"),
+        legend.position = "bottom")
+#  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.title.x = element_blank(),
+#        strip.text.x = element_text(size = 12), legend.text = element_text(size = 12))
 
 pandpic_de <- df %>% filter(country %in% c("Germany")) %>% 
   filter(! variable == "debtgross") %>%
@@ -1833,13 +1859,23 @@ pandpic_de <- df %>% filter(country %in% c("Germany")) %>%
   geom_line() +
   facet_wrap( ~ country,dir ="v" ) +
   theme_bw() +
-  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.title.x = element_blank(),
-        strip.text.x = element_text(size = 12), legend.text = element_text(size = 12))
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
+        strip.text.x = element_text(size = 16),
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        plot.title = element_text(hjust = 0.5, size = 18),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 15),
+        plot.margin = unit(c(0.2, 0.2, 0.2, 0.2), 
+                           "inches"),
+        legend.position = "bottom")
+#  theme(legend.position = "bottom", axis.title.y = element_blank(), axis.title.x = element_blank(),
+#        strip.text.x = element_text(size = 12), legend.text = element_text(size = 12))
 
 # ggsave(file="figures/test.jpg",width =8, height = 3)
 
 ggpubr::ggarrange(de_tm, it_tm, pandpic_de,pandpic_it)
-ggsave(file="review_1/sample_rv1/topicprev.jpg",width =13.5, height = 10)
+ggsave(file="review2/review_2/submissionR2/figures/topicprev.jpg",width =13.5, height = 10)
 
 
 ############### extract sample for testing inter-rater categorization
@@ -2506,7 +2542,7 @@ group_by(country,category) %>%
   ggplot(aes(reorder_within(label, gamma, category), gamma, fill = type)) +
  # geom_col() +
   geom_bar(stat = 'identity') +
-  geom_text(aes(label = frexterms),hjust = 0, y = 0.001, size = 6.7, # nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = frexterms),hjust = 0, y = 0.001, size = 7, # nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_x_reordered() +
@@ -2524,15 +2560,15 @@ group_by(country,category) %>%
   theme_bw() +
   theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
         axis.text.x = element_text(size = 12),
-        strip.text.x = element_text(size = 20), 
-        axis.text.y = element_text(size = 17),
+        strip.text.x = element_text(size = 21), 
+        axis.text.y = element_text(size = 19),
         legend.position = "bottom",
-        legend.text = element_text(size=17),
-        legend.title = element_text(size=18),
+        legend.text = element_text(size=22),
+        legend.title = element_text(size=23),
         plot.margin = unit(c(0.2, 0.2, 0.2, 0.2), 
                             "inches")
   ) + guides(fill=guide_legend(nrow=1))
-ggsave(file = paste0("review_1/sample_rv1/categoriestopic.jpg"),width = 22,height = 18)
+ggsave(file = paste0("review2/review_2/submissionR2/figures/categoriestopic.jpg"),width = 23.2,height = 20)
 
 
 #### annex figure 6
