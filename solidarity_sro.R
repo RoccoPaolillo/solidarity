@@ -1338,7 +1338,7 @@ effects_intIT <- effects_intIT %>% mutate(label = recode(topic,
                                                              "1" = "Hospital\ndonations",
                                                              "2" = "Charity",
                                                              "3" = "Economy", #
-                                                             "4" = "Covid outbreak",
+                                                             "4" = "Covid\noutbreak",
                                                              "5" = "Food\ndonations",
                                                              "6" = "Digital\nsolidarity",
                                                              # "7" = "Third\nsector",
@@ -1368,7 +1368,7 @@ effects_intIT <- effects_intIT %>% mutate(label = recode(topic,
 
 numm <- 20
 effects_int <- effects_intDE
-tidystm <- tidystmDE
+tidystm <- tidy(stm_de20)
 
 for (i in 1:numm) {
     
@@ -1380,7 +1380,14 @@ tm <- effects_int %>%  filter(topic == i) %>%
   ggtitle(paste( "Topic: ",effects_int[effects_int$topic == i,]$label)) + 
   ylab("Expected Proportion") +
   xlab("Time") +
-  theme_bw() 
+  theme_bw() +
+  theme(axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 16),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        title = element_text(size = 17),
+        plot.margin = unit(c(0.2, 0.2, 0.2, 0.2), 
+                           "inches"))
    
 wd <- tidystm %>% filter(topic == i) %>%
   arrange(- beta) %>%
@@ -1396,11 +1403,17 @@ wd <- tidystm %>% filter(topic == i) %>%
   coord_flip() +
   xlab("") +
   ylab("Probability words per topic") +
-  theme(axis.title.x = element_blank()) +
-  theme_bw() 
+  theme_bw() +
+  theme(axis.title.x = element_text(size = 16),
+        axis.text.y = element_text(size = 20),
+        axis.text.x = element_text(size = 15),
+        plot.margin = unit(c(0.2, 0.3, 0.2, 0.2), 
+                           "inches")
+        )
+  
  
 cm <- grid.arrange(tm,wd,ncol = 2)
-ggsave(cm,file = paste0("review_1/sample_rv1/DE/","DE_20","_",i,".jpg"),width = 14, height = 3.5)
+ggsave(cm,file = paste0("review2/review_2/submissionR2/figures/DE/","DE_20","_",i,".jpg"),width = 18, height = 4)
  
  }
  
@@ -1423,7 +1436,7 @@ it_tm <- effects_intIT %>% mutate(country = "Italy")  %>%  filter(topic %in% c(2
  scale_color_manual(values = c("2" = "red","23" = "blue", "3" = "black","14" = "gray",
                                "4" = "pink","21" = "purple","20" = "brown"),
                     labels = c("2" = "Charity","23" = "Families", "3" = "Economy",
-                               "14" = "Services\nmunicipalities","4" = "Covid outbreak","21" = "Vaccination",
+                               "14" = "Services\nmunicipalities","4" = "Covid\noutbreak","21" = "Vaccination",
                                "20" = "Lockdown" ),
                     name = "Topics" ) +
  scale_y_continuous(labels = scales::percent_format() ) +
@@ -1434,7 +1447,10 @@ it_tm <- effects_intIT %>% mutate(country = "Italy")  %>%  filter(topic %in% c(2
   xlab("Time") +
   theme_bw() +
   theme(axis.title.x = element_blank(), legend.position = "bottom",
-        strip.text.x = element_text(size = 16), legend.text = element_text(size=13),
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        axis.title.y = element_text(size = 14),
+        strip.text.x = element_text(size = 16), legend.text = element_text(size=14),
         legend.title =  element_text(size=15))
 
 de_tm <- effects_intDE %>% mutate(country = "Germany")  %>%  filter(topic %in% c(5,12,13,10,16,17,19)) %>%
@@ -1455,7 +1471,10 @@ de_tm <- effects_intDE %>% mutate(country = "Germany")  %>%  filter(topic %in% c
   xlab("Time") +
   theme_bw() +
   theme(axis.title.x = element_blank(), legend.position = "bottom",
-        strip.text.x = element_text(size = 16), legend.text = element_text(size=13),
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        axis.title.y = element_text(size = 14),
+        strip.text.x = element_text(size = 16), legend.text = element_text(size=14),
         legend.title =  element_text(size=15))
 
 
@@ -1751,7 +1770,7 @@ espic <- df_eurostat %>% filter(country %in% c("EU","Italy","Germany") & datenum
            facet_wrap(~  variable, scales = "free",
                       labeller = labeller(variable = eurostat.labs) ) +
   scale_x_continuous(breaks = c(17897,18262,18628,18993),
-                     labels = c("17897" = "JAN 2019","18262" = "JAN 2020","28628" = "JAN 2021","18993" = "DEC 2021")) +
+                     labels = c("17897" = "JAN 19","18262" = "JAN 20","28628" = "JAN 21","18993" = "DEC 21")) +
   geom_vline(xintercept = 18262, color = "gray") +
   ggtitle("Economic indicators") +
  # xlab("Time") +
@@ -1776,7 +1795,7 @@ whopic <- who %>% ggplot(aes(x = datenum, y = value, color = country)) +
   scale_color_manual(values = c("EU" = "blue","Italy" = "red", "Germany" = "darkgreen"),
                      name = "Country") +
   scale_x_continuous(breaks = c(18262,18628,18993),
-                     labels = c("18262" = "JAN 2020","28628" = "JAN 2021","18993" = "DEC 2021")) +
+                     labels = c("18262" = "JAN 20","28628" = "JAN 21","18993" = "DEC 21")) +
   facet_wrap(~ variable, scales = "free",
              labeller = labeller(variable = who.labs) ) +
   ggtitle("Pandemic indicators") +
@@ -1794,7 +1813,7 @@ whopic <- who %>% ggplot(aes(x = datenum, y = value, color = country)) +
   
 
 ggpubr::ggarrange(espic,whopic, nrow  = 2, common.legend = TRUE, legend = "bottom")
-ggsave(file="review2/review_2/submissionR2/figures/covidexp.jpg",width = 13,height = 8)
+ggsave(file="review2/review_2/submissionR2/figures/covidexp.jpg",width = 15,height = 9)
 
 norm_minmax <- function(x){
   (x- min(x)) /(max(x)-min(x))
@@ -2533,6 +2552,7 @@ save(gamma_terms_catTOT,file="review_1/sample_rv1/gamma_terms_catTOT.Rdata")
 load("review_1/sample_rv1/gamma_terms_catTOT.Rdata") 
 gamma_terms_catTOT[gamma_terms_catTOT$label == "Mobilitations",]$label <- "Mobilizations"
 gamma_terms_catTOT[gamma_terms_catTOT$label == "Covid outbreak",]$label <- "Covid\noutbreak"
+gamma_terms_catTOT[gamma_terms_catTOT$label == "Social exclusion",]$label <- "Social\nexclusion"
 
 gamma_terms_catTOT %>%
 group_by(country,category) %>%
@@ -2587,7 +2607,7 @@ decat  <- gamma_terms_catTOT %>%
   ggplot(aes(reorder_within(label, gamma, category), gamma, fill = type)) +
   # geom_col() +
   geom_bar(stat = 'identity') +
-  geom_text(aes(label = frexterms),hjust = 0, y = 0.001, size = 5, # nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = frexterms),hjust = 0, y = 0.001, size = 5.8, # nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_x_reordered() +
@@ -2605,11 +2625,11 @@ decat  <- gamma_terms_catTOT %>%
   theme_bw() +
   theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
         axis.text.x = element_text(size = 10),
-        strip.text.x = element_text(size = 15), 
-        axis.text.y = element_text(size = 13),
+        strip.text.x = element_text(size = 18), 
+        axis.text.y = element_text(size = 14),
         legend.position = "bottom",
-        legend.text = element_text(size=17),
-        legend.title = element_text(size=16),
+        legend.text = element_text(size=18),
+        legend.title = element_text(size=19),
         plot.margin = unit(c(0.2, 0.2, 0.2, 0.2), 
                            "inches")
   ) + guides(fill=guide_legend(nrow=1))
@@ -2625,7 +2645,7 @@ itcat  <- gamma_terms_catTOT %>%
   ggplot(aes(reorder_within(label, gamma, category), gamma, fill = type)) +
   # geom_col() +
   geom_bar(stat = 'identity') +
-  geom_text(aes(label = frexterms),hjust = 0, y = 0.001, size = 5, # nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = frexterms),hjust = 0, y = 0.001, size = 5.8, # nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_x_reordered() +
@@ -2643,18 +2663,18 @@ itcat  <- gamma_terms_catTOT %>%
   theme_bw() +
   theme(axis.title.y = element_blank(),axis.title.x = element_blank(),
         axis.text.x = element_text(size = 10),
-        strip.text.x = element_text(size = 15), 
-        axis.text.y = element_text(size = 13),
+        strip.text.x = element_text(size = 18), 
+        axis.text.y = element_text(size = 14),
         legend.position = "bottom",
-        legend.text = element_text(size=17),
-        legend.title = element_text(size=16),
+        legend.text = element_text(size=18),
+        legend.title = element_text(size=19),
         plot.margin = unit(c(0.2, 0.2, 0.2, 0.2), 
                            "inches")
   ) + guides(fill=guide_legend(nrow=1))
 
 
 ggpubr::ggarrange(decat,itcat,common.legend = TRUE, legend = "bottom")
-ggsave(file = paste0("review_1/sample_rv1/categoriestopic_",i,".jpg"),width = 19,height = 13)
+ggsave(file = paste0("review2/review_2/submissionR2/figures/categoriestopic_",i,".jpg"),width = 21.5,height = 15)
 
 }
 
@@ -2669,7 +2689,7 @@ for (i in unique(gamma_terms_catTOT$country)) {
            "Probs" = terms,
            "Frex" = frexterms
     )
-  write.csv(annex, file=paste0("review_1/sample_rv1/categoriestopic_",i,"_anxcat.csv"),sep=";",row.names = F)
+  write.csv(annex, file=paste0("/review2/review_2/submissionR2/figures/categoriestopic_",i,"_anxcat.csv"),sep=";",row.names = F)
   
 }
 
