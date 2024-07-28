@@ -191,10 +191,10 @@ df_finlocast$text <- str_replace_all(df_finlocast$text,cmpdsubstitute)
 
 # categorizations ####
 
-dftop_ita <- read.csv("Italy_cat.csv",sep = ",")
+dftop_ita <- read.csv("utils/Italy_cat.csv",sep = ",")
 dftop_ita[dftop_ita$user_description == "Comitato aquilano nato a seguito del sisma del 6 aprile del 2009. Si batte per una ricostruzione sociale della città, giusta e partecipata.",]$user_username <- "3e32"  
   
-dftop_deu <- read.csv("Germany_cat.csv",sep = ",")
+dftop_deu <- read.csv("utils/Germany_cat.csv",sep = ",")
   
 dftop <- rbind(dftop_ita, dftop_deu)
 
@@ -424,8 +424,8 @@ df_finlocast %>%
  ggsave(file="review2/review_2/submissionR2/figures/3_keyness.jpg",width = 11, height = 10)
 
 # combine topic proportion (figure 4) ####
-load("review_1/sample_rv1/DE/gamma_terms_de.Rdata")
-load("review_1/sample_rv1/IT/gamma_terms_it.Rdata")
+load("utils/gamma_terms_de.Rdata")
+load("utils/gamma_terms_it.Rdata")
 
 gamma_tot <- rbind(gamma_terms_it,gamma_terms_de)
 
@@ -517,8 +517,8 @@ ggsave("review2/review_2/submissionR2/figures/4_topic_proportion.png",height = 1
 
 # topic modelling visualizations (figure 5) ####
  
-load("review_1/sample_rv1/DE/stm_de20.Rdata")
-load("review_1/sample_rv1/DE/dfm_desolcv.Rdata")
+load("utils/stm_de20.Rdata")
+load("utils/dfm_desolcv.Rdata")
 stm_dfDE <- quanteda::convert(dfm_desolcv,to = "stm")  
 numm <- 20
 
@@ -556,8 +556,8 @@ effects_intDE <- effects_intDE %>% mutate(label = recode(topic,
                                                              "20" = "Health crisis")) 
 
 
-load("review_1/sample_rv1/IT/stm_it25.Rdata")
-load("review_1/sample_rv1/IT/dfm_itsolcv.Rdata")
+load("utils/stm_it25.Rdata")
+load("utils/dfm_itsolcv.Rdata")
 stm_dfIT <- quanteda::convert(dfm_itsolcv,to = "stm")  
 numm <- 25
 
@@ -810,7 +810,7 @@ ggsave(file="review2/review_2/submissionR2/figures/5_topicprev.jpg",width =13.5,
 
 # topic modelling actor categiries (figure 6) #####
 
-load("review_1/sample_rv1/gamma_terms_catTOT.Rdata") 
+load("utils/gamma_terms_catTOT.Rdata") 
 gamma_terms_catTOT[gamma_terms_catTOT$label == "Mobilitations",]$label <- "Mobilizations"
 gamma_terms_catTOT[gamma_terms_catTOT$label == "Covid outbreak",]$label <- "Covid\noutbreak"
 gamma_terms_catTOT[gamma_terms_catTOT$label == "Social exclusion",]$label <- "Social\nexclusion"
